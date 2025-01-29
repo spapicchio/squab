@@ -1,0 +1,11 @@
+[project]
+name = "squab"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pytest[dev]>=8.3.4",
+    "qatch>=1.0.28",
+    "sqlalchemy>=2.0.37",
+]
