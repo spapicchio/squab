@@ -5,9 +5,9 @@ from typing import TypeAlias, Generator
 from langchain_community.callbacks import get_openai_callback
 from qatch.connectors import ConnectorTable, SqliteConnector
 
-from squab import DatasetGenerator
-from squab.generate_datasets.utils import utils_get_db_dump_no_insert
-from squab.models import create_default_gpt4o
+from ...utils import utils_get_db_dump_no_insert
+from .... import DatasetGenerator
+from ....models import create_default_gpt4o
 
 PatternType: TypeAlias = dict[str, list[str] | float]
 MetadataType: TypeAlias = dict[str, list[str] | float]

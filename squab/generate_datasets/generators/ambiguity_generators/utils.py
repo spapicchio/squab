@@ -49,3 +49,20 @@ def utils_get_top_k_index_similar_matrix(self, values, at_most_k, threshold) -> 
         for i, attribute_indexes in enumerate(top_k_indices)
     ]
     return top_k_indices
+
+
+import difflib
+
+
+def utils_syntactic_match(str1: str, str2: str) -> float:
+    """
+    Returns a similarity ratio between two strings using difflib's SequenceMatcher.
+
+    Args:
+        str1 (str): The first string to compare.
+        str2 (str): The second string to compare.
+
+    Returns:
+        float: A similarity ratio between 0 and 1, where 1 means the strings are identical.
+    """
+    return difflib.SequenceMatcher(None, str1, str2).ratio()

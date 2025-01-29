@@ -52,7 +52,7 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
             model="text-embedding-3-large",
             api_key=os.getenv('OPENAI_API_KEY')
         )
-        self.metadata_generator = create_default_gpt4o(hub_prompt='label_columns_selector')
+        self.model_metadata = create_default_gpt4o(hub_prompt='label_columns_selector')
 
     @property
     def ambiguity_definition(self):
@@ -132,7 +132,7 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
         similar_cols = pattern['similar_cols']
 
         with get_openai_callback() as cb:
-            label = self.metadata_generator.predict({
+            label = self.model_metadata.predict({
                 'tbl_schema': tbl_schema,
                 'cols': similar_cols
             })
