@@ -996,6 +996,8 @@ name = "squab"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "pandas" },
+    { name = "pydantic" },
     { name = "pytest", extra = ["dev"] },
     { name = "qatch" },
     { name = "sqlalchemy" },
@@ -1003,6 +1005,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "pandas", specifier = ">=2.2.3" },
+    { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pytest", extras = ["dev"], specifier = ">=8.3.4" },
     { name = "qatch", specifier = ">=1.0.28" },
     { name = "sqlalchemy", specifier = ">=2.0.37" },
