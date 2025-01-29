@@ -5,9 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "google-generativeai[gemini]>=0.8.4",
+    "langchain-community>=0.3.16",
+    "langchain-openai>=0.3.2",
+    "langchain-together>=0.3.0",
     "pandas>=2.2.3",
     "pydantic>=2.10.6",
     "pytest[dev]>=8.3.4",
+    "python-dotenv>=1.0.1",
     "qatch>=1.0.28",
     "sqlalchemy>=2.0.37",
 ]

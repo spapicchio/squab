@@ -1,1 +1,1 @@
-from dataset_generator import DatasetGenerator, DatasetInput
+from .dataset_generator import DatasetGenerator, DatasetInput

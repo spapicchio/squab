@@ -1,1 +1,1 @@
-from evaluate import BaseEvaluator
+from .evaluate import BaseEvaluator

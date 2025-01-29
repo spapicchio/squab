@@ -1,9 +1,11 @@
+import random
 from abc import ABC, abstractmethod
 from itertools import islice
 from typing import Generator
 from typing import Optional, Union
 
 import pandas as pd
+from langchain_community.callbacks import get_openai_callback
 from pydantic import BaseModel, Field
 from qatch.connectors import ConnectorTable, SqliteConnector
 
@@ -11,6 +13,9 @@ from .utils import utils_find_closest_matches
 
 
 class DatasetInput(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+
     relative_sqlite_db_path: str = Field(description="Relative path to the SQLite database.")
     tbl_in_db_to_analyze: Optional[Union[list[str], str]] = Field(
         None,
@@ -59,6 +64,10 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
         None
     """
 
+    def __init__(self, seed):
+        random.seed(seed)
+        self.seed = seed
+
     def generate_dataset(self, function_input: DatasetInput) -> list[TestType]:
         """
         Generates a dataset of tests by iterating over tables, patterns, metadata, and tests.
@@ -78,13 +87,15 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
         # for loop over the table
         tests = []
         # Apply max_num constraints to each nested loop using `islice`
-        for tbl in islice(self.read_table_generator(**function_input.model_dump()), function_input.max_num_tbls):
-            for pattern in islice(self.pattern_identification(tbl), function_input.max_patterns_for_tbl):
-                for metadata in islice(self.metadata_generator(pattern, **function_input.model_dump()),
-                                       function_input.max_num_metadata_for_pattern):
-                    for test in islice(self.tests_generator(metadata, **function_input.model_dump()),
-                                       function_input.max_questions_for_metadata):
-                        tests.append(test)
+        with get_openai_callback() as cb:
+            for tbl in islice(self.read_table_generator(**function_input.model_dump()), function_input.max_num_tbls):
+                for pattern in islice(self.pattern_identification(tbl), function_input.max_patterns_for_tbl):
+                    for metadata in islice(self.metadata_generator(pattern, **function_input.model_dump()),
+                                           function_input.max_num_metadata_for_pattern):
+                        for test in islice(self.tests_generator(metadata, **function_input.model_dump()),
+                                           function_input.max_questions_for_metadata):
+                            tests.append(test)
+        # TODO: add cost in test_type
         return tests
 
     @abstractmethod
@@ -112,7 +123,7 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def metadata_generator(self, pattern, *args, **kwargs) -> Generator[MetadataType, None, None]:
+    def metadata_generator(self, pattern: PatternType, *args, **kwargs) -> Generator[MetadataType, None, None]:
         """
         Generates metadata objects based on the provided pattern and arguments. This method is abstract
         and must be implemented by subclasses. It yields metadata objects of type `MetadataType` in a
@@ -193,3 +204,34 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
         tbl_in_db_to_analyze = utils_find_closest_matches(tbl_in_db_to_analyze, list(tbl_name2tbls.keys()))
         for tbl_name in tbl_in_db_to_analyze:
             yield tbl_name2tbls[tbl_name]
+
+    def get_columns_no_pk_fk(self,
+                             table: ConnectorTable,
+                             start_from_cols: list[str] | None = None
+                             ) -> list[str]:
+        """
+        Retrieves a list of column names excluding primary key, foreign key, and certain unwanted patterns.
+
+        The function processes the provided or default column names of a table and excludes
+        those that are primary keys, foreign keys, or contain specific substrings such as
+        `id`, `code`, or `key` in their name.
+
+        Args:
+            table (ConnectorTable): The table containing metadata about the columns, as well as
+                primary and foreign key information.
+            start_from_cols (list[str] | None): Optional list of initial column names to process.
+                If None, all column names from the table are used.
+
+        Returns:
+            list[str]: A filtered list of column names, excluding primary keys, foreign keys,
+            and those containing `id`, `code`, or `key` substrings.
+        """
+        column_names = start_from_cols or list(table.tbl_col2metadata.keys())
+        primary_keys_name = [pk.column_name for pk in table.primary_key] if table.primary_key else []
+        primary_keys_name += [fk['parent_column'] for fk in table.foreign_keys] if table.foreign_keys else []
+        column_names = [val for val in column_names if
+                        val not in primary_keys_name and
+                        'id' not in val.lower() and
+                        'code' not in val.lower() and
+                        'key' not in val.lower()]
+        return column_names
