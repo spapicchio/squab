@@ -100,7 +100,7 @@ class BaseEvaluator:
 
     def evaluate_unanswerable(self,
                               predicted_sql: str,
-                              string_in_unans_prediction: str | None = 'is unanswerable',
+                              string_in_unans_prediction: str | None = 'NOT ANSWERABLE',
                               ) -> dict:
         """
         Evaluates whether the predicted SQL query is recognized as unanswerable.

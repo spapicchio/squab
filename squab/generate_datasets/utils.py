@@ -25,7 +25,17 @@ def utils_run_qatch(sqlite_connector: SqliteConnector, selected_col: str, tbl_na
         generator_names=['project', 'distinct', 'select', 'simple', 'orderby', 'groupby', 'having']
     )
     df = qatch_generator.generate_dataset(sqlite_connector, column_to_include=selected_col, tbl_names=[tbl_name])
-    list_tests = df.loc[:, ['test_category', 'query', 'question']].drop_duplicates().to_dict(orient='records')
+    df_masked = df[df.apply(lambda row: f"`{selected_col.lower()}`" in row['query'].lower(), axis=1)]
+    # remove unnecessary test-categories
+    df_masked = df_masked[
+        ~df_masked.sql_tag.str.lower().str.contains('join|many-to-many|project-random-col|orderby-single')
+    ]
+
+    # TODO undestand if it is better to include in each generator
+    # sample q element for each test-category
+    df_masked = df_masked.groupby('test_category').apply(lambda x: x.sample(2)).reset_index(drop=True)
+
+    list_tests = df_masked.loc[:, ['test_category', 'query', 'question']].drop_duplicates().to_dict(orient='records')
     return list_tests
 
 

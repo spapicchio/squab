@@ -1,1 +1,3 @@
+from .attachment_generator import AttachmentGenerator
 from .column_ambiguity_generator import ColumnAmbiguityGenerator
+from .scope_generator import ScopeGenerator

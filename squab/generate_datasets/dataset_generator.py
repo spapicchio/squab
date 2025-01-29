@@ -107,6 +107,7 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
                                                     sqlite_connector=sqlite_connector),
                         function_input.max_patterns_for_tbl
                 ):
+                    # TODO pass as argument the max_num_metadata_for_pattern to improve generation
                     for metadata in islice(
                             self.metadata_generator(pattern,
                                                     table=tbl,
