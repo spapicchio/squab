@@ -1,4 +1,52 @@
 import difflib
+import sqlite3
+
+from qatch.connectors import SqliteConnector
+from qatch.generate_dataset import OrchestratorGenerator as QatchOrchestrator
+
+
+def utils_run_qatch(sqlite_connector: SqliteConnector, selected_col: str, tbl_name: str
+                    ) -> list[dict]:
+    """
+    Executes query generation to produce a list of unique test case configurations
+    based on the provided table name and selected column.
+
+    Args:
+        sqlite_connector (SqliteConnector): The database connector to interact
+            with SQLite database.
+        selected_col (str): The name of the column to include in generated queries.
+        tbl_name (str): The name of the table to use in query generation.
+
+    Returns:
+        list[dict]: A list of dictionaries representing unique test configurations,
+            each including 'test_category', 'query', 'question'.
+    """
+    qatch_generator = QatchOrchestrator(
+        generator_names=['project', 'distinct', 'select', 'simple', 'orderby', 'groupby', 'having']
+    )
+    df = qatch_generator.generate_dataset(sqlite_connector, column_to_include=selected_col, tbl_names=[tbl_name])
+    list_tests = df.loc[:, ['test_category', 'query', 'question']].drop_duplicates().to_dict(orient='records')
+    return list_tests
+
+
+def utils_get_db_dump_no_insert(db_path):
+    """
+    Generates a database dump string containing only 'CREATE TABLE' statements. Excludes INSERT statements or
+    other SQL commands, returning a string of the database schema creation statements for a SQLite database.
+
+    Args:
+        db_path (str): The path to the SQLite database file.
+
+    Returns:
+        str: A single string concatenating all 'CREATE TABLE' statements from the SQLite database dump.
+
+    Raises:
+        sqlite3.Error: If there is an issue connecting to or querying the SQLite database.
+    """
+    with sqlite3.connect(db_path) as conn:
+        # Iterates over the dump generator and join each line into a single string
+        dump_string = "\n".join([line for line in conn.iterdump() if 'create table' in line.lower()])
+    return dump_string
 
 
 def utils_find_closest_matches(

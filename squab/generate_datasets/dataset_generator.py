@@ -54,14 +54,17 @@ class DatasetInput(BaseModel):
 
 class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
     """
-    Provides an abstract interface for generating datasets composed of tables, patterns, metadata, and tests.
+    Abstract base class for generating datasets through analysis of tables, patterns, metadata,
+    and tests.
 
-    Designed for creating test datasets by combining patterns, metadata, and test cases extracted
-    from tables. Subclasses must implement abstract methods for specific functionality, such as
-    identifying patterns, generating metadata, and producing test cases.
+    The class serves as a blueprint for creating dataset generators, providing methods to process
+    databases, identify patterns, generate metadata, and produce test cases. Subclasses should
+    implement the abstract methods for pattern identification, metadata generation, and test
+    generation as per the requirements of the dataset. Additionally, utility methods such as reading
+    tables and filtering columns are provided to assist in dataset creation.
 
     Attributes:
-        None
+        seed (int): Random seed for ensuring reproducibility when generating datasets.
     """
 
     def __init__(self, seed):
@@ -86,14 +89,38 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
         """
         # for loop over the table
         tests = []
+
+        db_name = function_input.db_name or function_input.relative_sqlite_db_path.split('/')[-1].replace('.sqlite', '')
+        sqlite_connector = SqliteConnector(relative_db_path=function_input.relative_sqlite_db_path,
+                                           db_name=db_name,
+                                           tables=function_input.tables,
+                                           table2primary_key=function_input.table2primary_key)
+
         # Apply max_num constraints to each nested loop using `islice`
         with get_openai_callback() as cb:
-            for tbl in islice(self.read_table_generator(**function_input.model_dump()), function_input.max_num_tbls):
-                for pattern in islice(self.pattern_identification(tbl), function_input.max_patterns_for_tbl):
-                    for metadata in islice(self.metadata_generator(pattern, **function_input.model_dump()),
-                                           function_input.max_num_metadata_for_pattern):
-                        for test in islice(self.tests_generator(metadata, **function_input.model_dump()),
-                                           function_input.max_questions_for_metadata):
+            for tbl in islice(
+                    self.read_table_generator(sqlite_connector, **function_input.model_dump()),
+                    function_input.max_num_tbls
+            ):
+                for pattern in islice(
+                        self.pattern_identification(tbl),
+                        function_input.max_patterns_for_tbl
+                ):
+                    for metadata in islice(
+                            self.metadata_generator(pattern,
+                                                    table=tbl,
+                                                    sqlite_connector=sqlite_connector,
+                                                    **function_input.model_dump()),
+                            function_input.max_num_metadata_for_pattern
+                    ):
+                        for test in islice(
+                                self.tests_generator(metadata,
+                                                     pattern=pattern,
+                                                     table=tbl,
+                                                     sqlite_connector=sqlite_connector,
+                                                     **function_input.model_dump()),
+                                function_input.max_questions_for_metadata
+                        ):
                             tests.append(test)
         # TODO: add cost in test_type
         return tests
@@ -164,42 +191,24 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
         raise NotImplementedError
 
     def read_table_generator(self,
-                             relative_sqlite_db_path: str,
+                             sqlite_connector: SqliteConnector,
                              tbl_in_db_to_analyze: list[str] | str | None = None,
-                             db_name: str | None = None,
-                             tables: dict[str, pd.DataFrame] | None = None,
-                             table2primary_key: dict[str, str] | None = None,
                              *args, **kwargs) -> Generator[ConnectorTable, None, None]:
         """
-        Iterates over tables in a SQLite database based on specified criteria and yields them as a generator.
-
-        This method allows users to read tables from a SQLite database by specifying the desired
-        tables to analyze or letting the function handle table selection. It returns a generator
-        that yields tables. The function employs utility methods for matching table names and leverages
-        a SQLite connector for data loading.
+        Yields tables from the database that match the given table names provided or the closest matching ones.
 
         Args:
-            relative_sqlite_db_path (str): The relative path to the SQLite database file.
-            tbl_in_db_to_analyze (list[str] | str | None, optional): The name(s) of the table(s) to
-                analyze. If not provided, matches the tables automatically.
-            db_name (str | None, optional): The name of the database. Defaults to the name extracted
-                from the SQLite file path if not provided.
-            tables (dict[str, pd.DataFrame] | None, optional): A dictionary of pre-loaded tables. If
-                specified, these tables will be considered for analysis instead of loading them anew.
-            table2primary_key (dict[str, str] | None, optional): A dictionary mapping table names to their
-                corresponding primary keys. This is passed to the SQLite connector.
-            *args: Optional positional arguments.
-            **kwargs: Optional keyword arguments.
+            sqlite_connector (SqliteConnector): An instance of the SqliteConnector class used to interact with
+                the SQLite database.
+            tbl_in_db_to_analyze (list[str] | str | None): Table names to find and read data from. If not provided
+                or None, matches the closest names available in the database.
+            *args: Additional positional arguments for extensibility and future compatibility.
+            **kwargs: Additional keyword arguments for extensibility and future compatibility.
 
         Yields:
-            ConnectorTable: The loaded table objects matching the specified criteria.
-
+            ConnectorTable: A table object fetched from the database matching the specified or closest table
+                names.
         """
-        db_name or relative_sqlite_db_path.split('/')[-1].replace('.sqlite', '')
-        sqlite_connector = SqliteConnector(relative_db_path=relative_sqlite_db_path,
-                                           db_name=db_name,
-                                           tables=tables,
-                                           table2primary_key=table2primary_key)
         tbl_name2tbls = sqlite_connector.load_tables_from_database()
         tbl_in_db_to_analyze = utils_find_closest_matches(tbl_in_db_to_analyze, list(tbl_name2tbls.keys()))
         for tbl_name in tbl_in_db_to_analyze:
