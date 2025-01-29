@@ -15,7 +15,7 @@ from ....models.langchain_wrapper import getter_json_output_from_resoning
 # Define reusable type aliases at the top
 PatternType: TypeAlias = dict[str, list[str] | float]
 MetadataType: TypeAlias = dict[str, str | float]
-TestType: TypeAlias = dict[str, str]
+TestType: TypeAlias = dict[str, str | float]
 
 
 class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestType]):
@@ -108,20 +108,20 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
             """
 
     def pattern_identification(self, table: ConnectorTable, *args, **kwargs) -> Generator[PatternType, None, None]:
-        selected_columns = self.get_columns_no_pk_fk(table)
-        selected_columns = [table.tbl_col2metadata[val] for val in selected_columns]
+        columns = self.get_columns_no_pk_fk(table)
+        columns = [table.tbl_col2metadata[val] for val in columns]
 
         # you need at least two columns to find a pattern
-        if len(selected_columns) < 2:
+        if len(columns) < 2:
             return
 
         with get_openai_callback() as cb:
-            similar_values = self._get_similar_values(
-                selected_columns,
+            similar_columns = self._get_similar_values(
+                columns,
                 threshold_similar_values=0.60
             )
 
-        for column_pairs in similar_values:
+        for column_pairs in similar_columns:
             if len(column_pairs) > 1:
                 yield {'similar_cols': column_pairs, 'pattern_cost': cb.total_cost}
 
@@ -169,7 +169,7 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
 
             yield {'question': generation['question'],
                    'question_template': test_category_query_question_dict['question'].replace(selected_col, metadata),
-                   'target': sql_interpretations,
+                   'answer': sql_interpretations,
                    'sql_tag': test_category_query_question_dict['test_category'],
                    'question_cost': cb.total_cost}
 

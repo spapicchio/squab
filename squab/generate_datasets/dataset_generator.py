@@ -103,22 +103,21 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
                     function_input.max_num_tbls
             ):
                 for pattern in islice(
-                        self.pattern_identification(tbl),
+                        self.pattern_identification(tbl,
+                                                    sqlite_connector=sqlite_connector),
                         function_input.max_patterns_for_tbl
                 ):
                     for metadata in islice(
                             self.metadata_generator(pattern,
                                                     table=tbl,
-                                                    sqlite_connector=sqlite_connector,
-                                                    **function_input.model_dump()),
+                                                    sqlite_connector=sqlite_connector),
                             function_input.max_num_metadata_for_pattern
                     ):
                         for test in islice(
                                 self.tests_generator(metadata,
                                                      pattern=pattern,
                                                      table=tbl,
-                                                     sqlite_connector=sqlite_connector,
-                                                     **function_input.model_dump()),
+                                                     sqlite_connector=sqlite_connector),
                                 function_input.max_questions_for_metadata
                         ):
                             tests.append(test)
