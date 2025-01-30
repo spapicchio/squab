@@ -1,3 +1,3 @@
-from .calculation_unanswerable import CalculationUnanswerable
-from .column_unanswerable import ColumnUnanswerable
-from .out_of_scope import OutOfScope
+from .calculation_unanswerable import CalculationUnanswerableGenerator
+from .column_unanswerable import ColumnUnanswerableGenerator
+from .out_of_scope import OutOfScopeGenerator

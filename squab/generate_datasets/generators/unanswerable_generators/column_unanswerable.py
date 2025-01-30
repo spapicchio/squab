@@ -25,7 +25,7 @@ def check_unanswerability_query(query: str, sqlite_connector: SqliteConnector):
         return False
 
 
-class ColumnUnanswerable(DatasetGenerator):
+class ColumnUnanswerableGenerator(DatasetGenerator):
     def __init__(self, seed=2023):
         super().__init__(seed)
         self.model_unans_col_generator = create_default_gpt4o(hub_prompt='unanswerable-column_generation',

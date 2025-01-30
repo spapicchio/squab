@@ -79,7 +79,7 @@ def check_unanswerability_query(query: str, udf_code: str, udf_name: str, sqlite
     return False
 
 
-class CalculationUnanswerable(DatasetGenerator):
+class CalculationUnanswerableGenerator(DatasetGenerator):
     def __init__(self, seed=2023):
         super().__init__(seed)
         self.model_unans_udf_generator = create_default_gpt4o(hub_prompt='unanswerable-udf_generation',
