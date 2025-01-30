@@ -45,7 +45,10 @@ def read_db_tbl(db_path, ambig_type):
         raise ValueError("the db_path must contain either 'ambrosia' or 'beaver'")
 
 
-def generate(dataset_path, test_category_to_generate):
+def generate(dataset_path, test_category_to_generate,
+             max_patterns_for_tbl,
+             max_num_metadata_for_pattern,
+             max_questions_for_metadata):
     db_paths2list_tbl_names = read_db_tbl(dataset_path, test_category_to_generate)
     dfs = []
     generator = GENERATORS[test_category_to_generate]()
@@ -53,9 +56,9 @@ def generate(dataset_path, test_category_to_generate):
         fun_input = DatasetInput(
             relative_sqlite_db_path=db_path,
             tbl_in_db_to_analyze=list(tbls),
-            max_patterns_for_tbl=1,
-            max_num_metadata_for_pattern=1,
-            max_questions_for_metadata=1,
+            max_patterns_for_tbl=max_patterns_for_tbl,
+            max_num_metadata_for_pattern=max_num_metadata_for_pattern,
+            max_questions_for_metadata=max_questions_for_metadata,
         )
         try:
             df = generator.generate_dataset(fun_input)
@@ -71,7 +74,10 @@ def generate(dataset_path, test_category_to_generate):
 def main():
     args = parse_args()
     df = generate(args.dataset_path,
-                  args.test_category_to_generate)
+                  args.test_category_to_generate,
+                  args.max_patterns_for_tbl,
+                  args.max_num_metadata_for_pattern,
+                  args.max_questions_for_metadata)
     dataset = 'beaver' if 'beaver' in args.dataset_path.lower() else 'ambrosia'
     df.to_json(f'generated_dataset_{dataset}_{args.test_category_to_generate}.json', orient='records', indent=2)
 
@@ -86,6 +92,20 @@ def parse_args():
                         type=str,
                         help=f'the dataset path where to fetch the databases. For Ambrosia `data/ambrosia/ambrosia.csv`,'
                              f'for BEAVER `data/beaver`')
+
+    parser.add_argument('--max_patterns_for_tbl',
+                        type=int,
+                        default=1,
+                        help='the maximum number of patterns to generate for each table')
+
+    parser.add_argument('--max_num_metadata_for_pattern',
+                        type=int,
+                        default=1,
+                        help='the maximum number of metadata to generate for each pattern')
+    parser.add_argument('--max_questions_for_metadata',
+                        type=int,
+                        default=1,
+                        help='the maximum number of questions to generate for each metadata')
 
     return parser.parse_args()
 
