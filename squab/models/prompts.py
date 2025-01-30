@@ -55,7 +55,7 @@ PROMPTS = {
             such as "Personal Information." 
             It is crucial that the label must be unique within its set and the table schema and also relevant to the
             overall table schema in question. As output, return a JSON enclosed in ```json ```.
-            Instead, if there is no possible labeling solution, return an empty dictionary ``json {}```.
+            Instead, if there is no possible labeling solution, return an empty dictionary ``json ```.
             
             ## Output
             ```json

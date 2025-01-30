@@ -163,14 +163,16 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
                                 function_input.max_questions_for_metadata
                         ):
                             tbl_tests.append(test)
-            average_test_cost = cb.total_cost / len(tbl_tests)
-            tbl_df = pd.DataFrame(tbl_tests)
-            tbl_df['table_name'] = tbl.tbl_name
-            tbl_df['tbl_schema'] = list(tbl.tbl_col2metadata.keys())
-            tbl_df['average_test_cost'] = average_test_cost
+            if len(tbl_tests) > 0:
+                average_test_cost = cb.total_cost / len(tbl_tests)
+                tbl_df = pd.DataFrame(tbl_tests)
+                tbl_df['table_name'] = tbl.tbl_name
+                tbl_df['tbl_schema'] = [list(tbl.tbl_col2metadata.keys())]
+                tbl_df['average_test_cost'] = average_test_cost
 
-            tests.append(tbl_df)
-        # TODO: add cost in test_type
+                tests.append(tbl_df)
+        if len(tests) == 0:
+            return pd.DataFrame()
         df = pd.concat(tests, ignore_index=True)
         df['test_category'] = self.test_category
         df['test_type'] = self.test_type

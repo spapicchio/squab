@@ -63,7 +63,7 @@ class ColumnUnanswerableGenerator(DatasetGenerator):
         with get_openai_callback() as cb:
             llm_new_cols = self.model_unans_col_generator.predict({
                 'num_to_generate': num_to_generate,
-                'db_name': kwargs['sqlite_connectors'].db_id,
+                'db_name': kwargs['sqlite_connector'].db_id,
                 'tbl_name': kwargs['table'].tbl_name,
                 'tbl_schema': pattern['tbl_schema']
             })
@@ -88,19 +88,19 @@ class ColumnUnanswerableGenerator(DatasetGenerator):
 
     def tests_generator(self, metadata: MetadataType, *args, **kwargs) -> Generator[TestType, None, None]:
         col_to_use_for_generation = metadata['col_to_use_for_generation']
-        list_queries_with_selected_col = utils_run_qatch(sqlite_connector=kwargs['sqlite_connectors'],
+        list_queries_with_selected_col = utils_run_qatch(sqlite_connector=kwargs['sqlite_connector'],
                                                          selected_col=col_to_use_for_generation,
                                                          tbl_name=kwargs['table'].tbl_name)
         for test_category_query_question_dict in list_queries_with_selected_col:
             unans_query = test_category_query_question_dict['query'].replace(f'`{col_to_use_for_generation}`',
                                                                              f"`{metadata['new_column_name']}`")
-            if check_unanswerability_query(unans_query, kwargs['sqlite_connectors']):
+            if check_unanswerability_query(unans_query, kwargs['sqlite_connector']):
                 with get_openai_callback() as cb:
                     generated_question = self.model_question_generator.predict({
                         'examples': '',  # TODO add examples
                         'queries': unans_query,
                         'metadata': metadata,
-                        'database': utils_get_db_dump_no_insert(kwargs['sqlite_connectors']),
+                        'database': utils_get_db_dump_no_insert(kwargs['sqlite_connector']),
                     })
                 generated_question = getter_json_output_from_resoning(generated_question)
                 if 'question' not in generated_question:

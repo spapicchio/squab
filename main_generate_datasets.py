@@ -1,6 +1,10 @@
 import argparse
+import logging
 
 import pandas as pd
+import sqlalchemy.exc
+from dotenv import load_dotenv
+from tqdm import tqdm
 
 from squab import DatasetInput
 from squab.generate_datasets.generators.ambiguity_generators import (
@@ -12,6 +16,8 @@ from squab.generate_datasets.generators.unanswerable_generators import ColumnUna
     CalculationUnanswerableGenerator, \
     OutOfScopeGenerator
 from utils import read_db_tbl_ambrosia_ambig, read_db_tbl_beaver, read_db_tbl_amrbosia_unans
+
+load_dotenv(override=True)
 
 GENERATORS = {
     'attachment': AttachmentGenerator,
@@ -37,28 +43,35 @@ def read_db_tbl(db_path, ambig_type):
         raise ValueError("the db_path must contain either 'ambrosia' or 'beaver'")
 
 
-def generate(dataset_path, test_category_to_generate, generator_name):
+def generate(dataset_path, test_category_to_generate):
     db_paths2list_tbl_names = read_db_tbl(dataset_path, test_category_to_generate)
     dfs = []
-    generator = GENERATORS[generator_name]()
-    for db_path, tbls in db_paths2list_tbl_names:
+    generator = GENERATORS[test_category_to_generate]()
+    for db_path, tbls in tqdm(db_paths2list_tbl_names[:5]):
         fun_input = DatasetInput(
             relative_sqlite_db_path=db_path,
-            tbl_in_db_to_analyze=tbls,
-            max_patterns_for_tbl=10,
-            max_num_metadata_for_pattern=2,
-            max_questions_for_metadata=7,
+            tbl_in_db_to_analyze=list(tbls),
+            max_patterns_for_tbl=1,
+            max_num_metadata_for_pattern=1,
+            max_questions_for_metadata=1,
         )
-        df = generator.generate_dataset(fun_input=fun_input)
+        try:
+            df = generator.generate_dataset(fun_input)
+        except sqlalchemy.exc.NoSuchTableError as e:
+            # this error arises with AMBROSIA databases
+            logging.warning(f'{db_path}\n{e}')
+            continue
         dfs.append(df)
-    return pd.concat(dfs, ignore_index=True)
+
+    return pd.concat(dfs, ignore_index=True) if len(dfs) > 0 else pd.DataFrame()
 
 
 def main():
     args = parse_args()
-    generate(args.dataset_path,
-             args.test_type,
-             args.test_category_to_generate)
+    df = generate(args.dataset_path,
+                  args.test_category_to_generate)
+    dataset = 'beaver' if 'beaver' in args.dataset_path.lower() else 'ambrosia'
+    df.to_json(f'generated_dataset_{dataset}_{args.test_category_to_generate}.json', orient='records', indent=2)
 
 
 def parse_args():
@@ -73,3 +86,7 @@ def parse_args():
                              f'for BEAVER `data/beaver`')
 
     return parser.parse_args()
+
+
+if __name__ == '__main__':
+    main()

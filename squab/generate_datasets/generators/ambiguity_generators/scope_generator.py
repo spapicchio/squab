@@ -139,6 +139,7 @@ class ScopeGenerator(DatasetGenerator):
                 'metadata': metadata,
                 'database': utils_get_db_dump_no_insert(kwargs['sqlite_connector'].db_path)
             })
+            generation = getter_json_output_from_resoning(generation)
         yield {'question': generation['question'],
                'answer': sql_interpretations,
                'question_cost': cb.total_cost}

@@ -1,8 +1,9 @@
 import numpy as np
+from qatch.connectors import ConnectorTableColumn
 from sklearn.metrics import pairwise_distances
 
 
-def utils_combine_clusters(clusters: dict[str, list]) -> dict[str, list]:
+def utils_combine_clusters(clusters: dict[str, list]) -> dict[str, list[ConnectorTableColumn]]:
     # List of clusters to be removed
     to_remove = set()
 
@@ -32,7 +33,7 @@ def utils_get_pairwise_similarity_metric(values: list[list[float]], metric='cosi
     return 1 - pairwise_distance_matrix
 
 
-def utils_get_top_k_index_similar_matrix(self, values, at_most_k, threshold) -> list[list[int]]:
+def utils_get_top_k_index_similar_matrix(values, at_most_k, threshold) -> list[list[int]]:
     similarity_matrix = utils_get_pairwise_similarity_metric(values, metric='cosine')
     similarity_matrix = np.tril(similarity_matrix)
     # Change all values less than the threshold to 0

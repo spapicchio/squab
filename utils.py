@@ -46,8 +46,9 @@ def read_db_tbl_beaver(db_path) -> list[tuple[str, list[str]]]:
                      "ACADEMIC_TERMS",
                      "SIS_DEPARTMENT",
                      "CIP"]
-    tables = {tbl: pd.read_csv(os.path.join(db_path, f"{tbl}.csv")) for tbl in selected_tbls}
-    SqliteConnector(relative_db_path=os.path.join(db_path, 'beaver.sqlite'), db_name='beaver', tables=tables)
+    if not os.path.exists(os.path.join(db_path, 'beaver.sqlite')):
+        tables = {tbl: pd.read_csv(os.path.join(db_path, f"{tbl}.csv")) for tbl in selected_tbls}
+        SqliteConnector(relative_db_path=os.path.join(db_path, 'beaver.sqlite'), db_name='beaver', tables=tables)
 
     return [(os.path.join(db_path, 'beaver.sqlite'), selected_tbls)]
 
@@ -110,10 +111,12 @@ def read_db_tbl_ambrosia_ambig(path, ambig_type) -> list[tuple[str, list[str]]]:
     # get only ambiguous tests
     df = df[df.question_type == 'ambig']
     # get specific ambiguity type
+    df.db_file.map(lambda x: x.replace('data', 'data/ambrosia'))
     df = df[df.ambig_type == ambig_type]
+    df.db_file = df.db_file.map(lambda x: x.replace('data', 'data/ambrosia'))
+
     if ambig_type != 'scope':
         df = ambrosia_only_single_tbl(df)
-        df.db_file = df.db_file.map(lambda x: x.replace('data', 'data/ambrosia'))
         db_paths = set(map(tuple, df[['db_file', 'tbl_name']].values))
         output = defaultdict(list)
         for db, tbl in db_paths:
@@ -121,7 +124,7 @@ def read_db_tbl_ambrosia_ambig(path, ambig_type) -> list[tuple[str, list[str]]]:
         db_paths = [(k, v) for k, v in output.items()]
     else:
         # for scope, we need to create a denormalized db
-        db_paths = denormalize_and_save_ambrosia(df)
+        db_paths = denormalize_and_save_ambrosia(df.db_file.unique())
     return sorted(db_paths)
 
 
@@ -176,7 +179,7 @@ def ambrosia_only_single_tbl(ambrosia_df) -> pd.DataFrame:
 def denormalize_and_save_ambrosia(db_paths):
     """
     Denormalizes database tables and saves the processed data into a specified directory. Existing
-    files are NOT overwritten if they exist. The function handles errors gracefully and skips problematic
+    files are overwritten if they exist. The function handles errors gracefully and skips problematic
     databases. The function returns paths of newly created denormalized database files along with their
     tables.
 
@@ -196,12 +199,14 @@ def denormalize_and_save_ambrosia(db_paths):
     # db_paths = set(df.db_file.map(lambda x: x.replace('data', 'data/ambrosia')).to_list())
 
     db_paths_denormilized = []
+    if not os.path.exists('data/ambrosia_denormalized/'):
+        os.makedirs('data/ambrosia_denormalized/')
     for db_path in db_paths:
 
         dp_path_denormalized = db_path.replace('data/ambrosia/', 'data/ambrosia_denormalized/')
 
         if os.path.exists(dp_path_denormalized):
-            continue
+            os.remove(dp_path_denormalized)
         try:
             tables = denormalize_table_in_database(db_path)
         except Exception as e:
@@ -332,7 +337,7 @@ def denormalize_table_in_database(db_path):
             table1.columns = [c.lower() for c in table1.columns]
 
             table1 = table1.loc[:, ~table1.columns.duplicated()]
-            denormalized_tables['_'.join(table_already_seen)] = table1
+            denormalized_tables['_'.join(sorted(table_already_seen))] = table1
             tables_name_denormilized += list(table_already_seen)
 
     # at this point

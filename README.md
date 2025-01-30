@@ -58,12 +58,19 @@ Once downloaded, insert the database in the _data_ folder
     | -- ambrosia
     | -- beaver
 ```
+The generation of the tests is based on a blend of script and openai call. Remember to define `OPENAI_API_KEY` in the **.env** file
 
-Then run the following scripts:
+- To generate the datasets for AMBROSIA:
 
+```shell
+python ./main_generate_dataset.py --test_category_to_generate attachment --dataset_path data/ambrosia/ambrosia.csv
+```
 
+- To generate the datasets for BEAVER:
 
+```shell
+python ./main_generate_dataset.py --test_category_to_generate attachment --dataset_path data/beaver
+```
 
-
-
+To create different test categories, change `test_category_to_generate` accordingly.  
 

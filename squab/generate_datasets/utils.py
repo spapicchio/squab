@@ -33,7 +33,8 @@ def utils_run_qatch(sqlite_connector: SqliteConnector, selected_col: str, tbl_na
 
     # TODO undestand if it is better to include in each generator
     # sample q element for each test-category
-    df_masked = df_masked.groupby('test_category').apply(lambda x: x.sample(2)).reset_index(drop=True)
+    sample_fun = lambda x: x.sample(2) if len(x) > 2 else x
+    df_masked = df_masked.groupby('test_category').apply(sample_fun).reset_index(drop=True)
 
     list_tests = df_masked.loc[:, ['test_category', 'query', 'question']].drop_duplicates().to_dict(orient='records')
     return list_tests

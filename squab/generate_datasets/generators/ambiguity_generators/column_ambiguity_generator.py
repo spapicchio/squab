@@ -3,7 +3,7 @@ import random
 from typing import Generator, TypeAlias, Literal
 
 from langchain_community.callbacks import get_openai_callback
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai.embeddings import OpenAIEmbeddings
 from qatch.connectors import ConnectorTable
 
 from .utils import utils_combine_clusters, utils_get_top_k_index_similar_matrix
@@ -149,16 +149,14 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
             if 'label' not in label or any(label['label'].lower() == col.lower() for col in tbl_schema):
                 return
 
-        yield {'metadata': label['label'], 'metadata_cost': cb.total_cost}
+        yield {'hypernym': label['label'], 'metadata_cost': cb.total_cost}
 
     def tests_generator(self, metadata: MetadataType, *args, **kwargs) -> Generator[TestType, None, None]:
         similar_cols = kwargs['pattern']['similar_cols']
-        metadata = kwargs['metadata']
-
         # randomly select one col in similar cols
         selected_col = random.choice(similar_cols)
 
-        list_queries_with_selected_col = utils_run_qatch(sqlite_connector=kwargs['sqlite_connectors'],
+        list_queries_with_selected_col = utils_run_qatch(sqlite_connector=kwargs['sqlite_connector'],
                                                          selected_col=selected_col,
                                                          tbl_name=kwargs['table'].tbl_name)
 
@@ -174,9 +172,11 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
                     'metadata': metadata,
                     'database': utils_get_db_dump_no_insert(kwargs['sqlite_connector'].db_path),
                 })
+                generation = getter_json_output_from_resoning(generation)
 
             yield {'question': generation['question'],
-                   'question_template': test_category_query_question_dict['question'].replace(selected_col, metadata),
+                   'question_template': test_category_query_question_dict['question'].replace(selected_col,
+                                                                                              metadata['hypernym']),
                    'answer': sql_interpretations,
                    'sql_tag': test_category_query_question_dict['test_category'],
                    'question_cost': cb.total_cost}
@@ -195,15 +195,16 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
                                                              at_most_k=at_most_k,
                                                              threshold=threshold_similar_values)
 
-        clusters = {
+        cluster_name2similar_cols = {
             f'cluster_{i}': [values[j] for j in indexes] + [values[i]]
             for i, indexes in enumerate(top_k_indexes)
             if indexes
         }
         # combine the values which are subsets of each other
-        clusters = utils_combine_clusters(clusters)
+        cluster_name2similar_cols = utils_combine_clusters(cluster_name2similar_cols)
 
-        return [cluster for cluster in clusters.values()]
+        return [[col.column_name for col in similar_cols]
+                for similar_cols in cluster_name2similar_cols.values()]
 
     def _build_sql_interpretations(self, query, similar_cols, col_in_query):
         sql_interpretations = []
