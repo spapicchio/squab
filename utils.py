@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import re
+import sqlite3
 from collections import defaultdict
 
 import pandas as pd
@@ -9,7 +10,84 @@ import sqlalchemy
 from qatch.connectors import SqliteConnector
 
 
-def read_db_tbl_ambrosia(ambig_type) -> list[tuple[str, list[str]]]:
+def read_db_tbl_beaver(db_path) -> list[tuple[str, list[str]]]:
+    # these are the uniformly sampled tables from beaver used to generate the dataset
+    selected_tbls = ["new_FCLT_ORG_DLC_KEY",
+                     "FCLT_ORG_DLC_KEY",
+                     "SPACE_SUPERVISOR_USAGE",
+                     "FCLT_BUILDING_HIST",
+                     "CIS_HASS_ATTRIBUTE",
+                     "FAC_BUILDING_ADDRESS",
+                     "MASTER_DEPT_HIERARCHY",
+                     "ACADEMIC_TERMS_ALL",
+                     "FAC_FLOOR",
+                     "LIBRARY_MATERIAL_STATUS",
+                     "TIP_DETAIL",
+                     "SIS_COURSE_DESCRIPTION",
+                     "LIBRARY_RESERVE_CATALOG",
+                     "TIME_DAY",
+                     "FCLT_ORGANIZATION",
+                     "FCLT_BUILDING_ADDRESS",
+                     "IAP_SUBJECT_SESSION",
+                     "TIP_MATERIAL_STATUS",
+                     "ACADEMIC_TERM_PARAMETER",
+                     "FCLT_BUILDING",
+                     "SPACE_USAGE",
+                     "SPACE_UNIT",
+                     "TIP_MATERIAL",
+                     "SPACE_FLOOR",
+                     "IAP_SUBJECT_SPONSOR",
+                     "IAP_SUBJECT_DETAIL",
+                     "FAC_ORGANIZATION",
+                     "SIS_SUBJECT_CODE",
+                     "SIS_ADMIN_DEPARTMENT",
+                     "STUDENT_DEPARTMENT",
+                     "BUILDINGS",
+                     "ACADEMIC_TERMS",
+                     "SIS_DEPARTMENT",
+                     "CIP"]
+    tables = {tbl: pd.read_csv(os.path.join(db_path, f"{tbl}.csv")) for tbl in selected_tbls}
+    SqliteConnector(relative_db_path=os.path.join(db_path, 'beaver.sqlite'), db_name='beaver', tables=tables)
+
+    return [(os.path.join(db_path, 'beaver.sqlite'), selected_tbls)]
+
+
+def read_db_tbl_amrbosia_unans(db_path):
+    """
+    Processes database tables from Ambrosia ambiguous database scope and retrieves schema length for each table.
+
+    This function reads database tables under the Ambrosia ambiguous database 'scope' category. It processes each
+    table by retrieving its schema information to determine the number of columns in each table. The results are
+    then grouped and returned as a dictionary mapping database paths to their corresponding tables.
+
+    Returns:
+        defaultdict[str, set[str]]: A mapping of database paths to sets of table names for which schema
+        information was processed and sorted by the number of columns.
+    """
+    scope_db_tbls = read_db_tbl_ambrosia_ambig(db_path, 'scope')
+    db_tbls_len_schema = []
+    for db_path, tables in scope_db_tbls:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            for table_name in tables:
+                # Example query to process each table
+                # Use PRAGMA to retrieve the table schema
+                cursor.execute(f"PRAGMA table_info({table_name});")
+                schema_info = cursor.fetchall()
+                if schema_info:
+                    # The length of the schema corresponds to the number of retrieved columns
+                    db_tbls_len_schema.append((db_path, table_name, len(schema_info)))
+
+    db_tbls_len_schema = sorted(db_tbls_len_schema, key=lambda x: x[-1])
+
+    db_path2tbls = defaultdict(set)
+    for db_dict in db_tbls_len_schema:
+        db_path2tbls[db_dict['db_path']].add(db_dict['tbl_name'])
+
+    return db_path2tbls
+
+
+def read_db_tbl_ambrosia_ambig(path, ambig_type) -> list[tuple[str, list[str]]]:
     """
     Retrieves database table information based on the specified ambiguity type
     from the Ambrosia dataset.
@@ -28,7 +106,6 @@ def read_db_tbl_ambrosia(ambig_type) -> list[tuple[str, list[str]]]:
         contains a database file path as the first element and a list of
         associated table names as the second element.
     """
-    path = 'data/ambrosia/ambrosia.csv'
     df = pd.read_csv(path)
     # get only ambiguous tests
     df = df[df.question_type == 'ambig']
