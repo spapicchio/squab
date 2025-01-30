@@ -383,17 +383,17 @@ PROMPTS = {
             
             Provide the output in a structured JSON format:
             ```json
-            {
+            {{
               "suggested_columns": [
-                {
+                {{
                   "column_name": "[suggested_column_name]",
                   "column_type": "[categorical/numerical]",
                   "description": "the description of the column",
                   "sample_data": ["[sample_value1]", "[sample_value2]", ...]
-                },
+                }},
                 ...
               ]
-            }
+            }}
             ```
             
             Ensure the suggestions are relevant to the context implied by the existing column names.
@@ -411,22 +411,22 @@ PROMPTS = {
             ### Output
             
             ```json
-            {
+            {{
               "suggested_columns": [
-                {
+                {{
                   "column_name": "customer_segment",
                   "column_type": "categorical",
                   "description": "The customer segment for the sales",
                   "sample_data": ["Regular", "VIP", "New"]
-                },
-                {
+                }},
+                {{
                   "column_name": "average_spending",
                   "column_type": "numerical",
                   "description": "the average spending of the customer",
                   "sample_data": [100.0, 250.5, 300.3]
-                }
+                }}
               ]
-            }
+            }}
             ```
             # Notes
             - Consider the context provided by the existing columns to ensure the suggestions add value.

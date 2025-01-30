@@ -104,7 +104,7 @@ class OutOfScopeGenerator(DatasetGenerator):
                         'examples': '',  # TODO add examples
                         'queries': unans_query,
                         'metadata': metadata,
-                        'database': utils_get_db_dump_no_insert(kwargs['sqlite_connector']),
+                        'database': utils_get_db_dump_no_insert(kwargs['sqlite_connector'].db_path),
                     })
                 generated_question = getter_json_output_from_resoning(generated_question)
                 if 'question' not in generated_question:

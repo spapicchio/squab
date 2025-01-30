@@ -63,7 +63,7 @@ class ColumnUnanswerableGenerator(DatasetGenerator):
         with get_openai_callback() as cb:
             llm_new_cols = self.model_unans_col_generator.predict({
                 'num_to_generate': num_to_generate,
-                'db_name': kwargs['sqlite_connector'].db_id,
+                'db_name': kwargs['sqlite_connector'].db_name,
                 'tbl_name': kwargs['table'].tbl_name,
                 'tbl_schema': pattern['tbl_schema']
             })
@@ -100,7 +100,7 @@ class ColumnUnanswerableGenerator(DatasetGenerator):
                         'examples': '',  # TODO add examples
                         'queries': unans_query,
                         'metadata': metadata,
-                        'database': utils_get_db_dump_no_insert(kwargs['sqlite_connector']),
+                        'database': utils_get_db_dump_no_insert(kwargs['sqlite_connector'].db_path),
                     })
                 generated_question = getter_json_output_from_resoning(generated_question)
                 if 'question' not in generated_question:

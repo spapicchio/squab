@@ -34,8 +34,10 @@ def read_db_tbl(db_path, ambig_type):
         if ambig_type in ['attachment', 'scope', 'column_ambiguity']:
             ambig_type = ambig_type if ambig_type != 'column_ambiguity' else 'vague'
             return read_db_tbl_ambrosia_ambig(db_path, ambig_type)
-        else:
+        elif ambig_type in ['column_unanswerable', 'calculation_unanswerable', 'out_of_scope']:
             return read_db_tbl_amrbosia_unans(db_path)
+        else:
+            raise ValueError(f'test_category_to_generate must be in {list(GENERATORS.keys())}')
 
     elif 'beaver' in db_path.lower():
         return read_db_tbl_beaver(db_path)
@@ -47,7 +49,7 @@ def generate(dataset_path, test_category_to_generate):
     db_paths2list_tbl_names = read_db_tbl(dataset_path, test_category_to_generate)
     dfs = []
     generator = GENERATORS[test_category_to_generate]()
-    for db_path, tbls in tqdm(db_paths2list_tbl_names[:5]):
+    for db_path, tbls in tqdm(db_paths2list_tbl_names):
         fun_input = DatasetInput(
             relative_sqlite_db_path=db_path,
             tbl_in_db_to_analyze=list(tbls),

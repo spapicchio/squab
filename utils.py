@@ -80,11 +80,16 @@ def read_db_tbl_amrbosia_unans(db_path):
                     db_tbls_len_schema.append((db_path, table_name, len(schema_info)))
 
     db_tbls_len_schema = sorted(db_tbls_len_schema, key=lambda x: x[-1])
-
+    db_tbls_len_schema = db_tbls_len_schema[:50]
     db_path2tbls = defaultdict(set)
-    for db_dict in db_tbls_len_schema:
-        db_path2tbls[db_dict['db_path']].add(db_dict['tbl_name'])
+    count = 0
+    for db_path, tbl_name, _ in db_tbls_len_schema:
+        db_path2tbls[db_path].add(tbl_name)
+        count += 1
+        if count == 33:
+            break
 
+    db_path2tbls = [(db_path, list(db_path2tbls[db_path])) for db_path in db_path2tbls]
     return db_path2tbls
 
 
@@ -206,7 +211,16 @@ def denormalize_and_save_ambrosia(db_paths):
         dp_path_denormalized = db_path.replace('data/ambrosia/', 'data/ambrosia_denormalized/')
 
         if os.path.exists(dp_path_denormalized):
-            os.remove(dp_path_denormalized)
+            try:
+                logging.info(f"Loading existing tables from {dp_path_denormalized}")
+                connector = SqliteConnector(relative_db_path=dp_path_denormalized, db_name='_')
+                tables = connector.load_tables_from_database()
+                db_paths_denormilized.append((dp_path_denormalized, list(tables.keys())))
+                continue
+            except Exception as e:
+                # logging.warning(f"Error loading tables from existing file {dp_path_denormalized}: {e}")
+                continue
+
         try:
             tables = denormalize_table_in_database(db_path)
         except Exception as e:

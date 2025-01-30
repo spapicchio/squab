@@ -163,6 +163,7 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
                                 function_input.max_questions_for_metadata
                         ):
                             tbl_tests.append(test)
+
             if len(tbl_tests) > 0:
                 average_test_cost = cb.total_cost / len(tbl_tests)
                 tbl_df = pd.DataFrame(tbl_tests)
