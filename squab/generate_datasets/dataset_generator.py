@@ -1,7 +1,7 @@
 import random
 from abc import ABC, abstractmethod
 from itertools import islice
-from typing import Generator
+from typing import Generator, Literal
 from typing import Optional, Union
 
 import pandas as pd
@@ -71,21 +71,62 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
         random.seed(seed)
         self.seed = seed
 
-    def generate_dataset(self, function_input: DatasetInput) -> list[TestType]:
+    @property
+    @abstractmethod
+    def test_type(self) -> Literal['ambig', 'unans']:
         """
-        Generates a dataset of tests by iterating over tables, patterns, metadata, and tests.
-
-        This method uses input constraints such as the maximum number of tables, patterns, metadata, 
-        and questions to generate a comprehensive set of tests efficiently. The final dataset is 
-        constructed by applying nested loops along with slicing for each generator step, adhering to 
-        the provided constraints.
-
-        Args:
-            function_input (DatasetInput): The input configuration containing the maximum limits 
-                and necessary settings for generating the dataset.
+        Defines an abstract property method `test_type` that must be implemented
+        by any subclass. This property is expected to return a literal value
+        indicating a specific test type.
 
         Returns:
-            list[TestType]: A list of generated tests based on the constraints and input provided.
+            Literal['ambig', 'unans']: A string literal determining the test type.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def test_category(self):
+        """
+        This abstract property serves as a placeholder for retrieving or setting the
+        category of a test in derived classes. It enforces that a category must be
+        defined, ensuring subclasses implement this functionality.
+
+        Attributes:
+            test_category (str): Represents a string indicating the specific
+            category of the test, which must be defined in the subclass.
+
+        Raises:
+            NotImplementedError: If not implemented in a subclass.
+        """
+        raise NotImplementedError
+
+    def generate_dataset(self, function_input: DatasetInput) -> pd.DataFrame:
+        """
+        Generates a dataset of test questions and related metadata by processing
+        database tables through multiple nested iterative stages.
+
+        The function takes a `DatasetInput` object specifying the parameters for
+        database access, constraints on generation, and other settings. It executes
+        a multi-step pipeline involving database table processing, pattern
+        identification, metadata generation, and finally test generation. At each
+        step, user-defined constraints (e.g., maximum number of tables, patterns,
+        or metadata entries) are applied to limit the scope of generation. Costs
+        associated with the generation process are computed and logged.
+
+        Args:
+            function_input (DatasetInput): An object encapsulating input
+                configuration settings required for dataset generation. It includes
+                details about database connection, tables, constraints, and
+                generation parameters.
+
+        Returns:
+            pd.DataFrame: A Pandas DataFrame containing generated dataset with the
+            following columns:
+                - test questions and metadata corresponding to the processed tables.
+                - table name and schema for reference.
+                - average test generation costs.
+                - dataset seed and associated test category.
         """
         # for loop over the table
         tests = []
@@ -95,13 +136,13 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
                                            db_name=db_name,
                                            tables=function_input.tables,
                                            table2primary_key=function_input.table2primary_key)
-
         # Apply max_num constraints to each nested loop using `islice`
-        with get_openai_callback() as cb:
-            for tbl in islice(
-                    self.read_table_generator(sqlite_connector, **function_input.model_dump()),
-                    function_input.max_num_tbls
-            ):
+        for tbl in islice(
+                self.read_table_generator(sqlite_connector, **function_input.model_dump()),
+                function_input.max_num_tbls
+        ):
+            with get_openai_callback() as cb:
+                tbl_tests = []
                 for pattern in islice(
                         self.pattern_identification(tbl,
                                                     sqlite_connector=sqlite_connector),
@@ -121,9 +162,20 @@ class DatasetGenerator[PatternType, MetadataType, TestType](ABC):
                                                      sqlite_connector=sqlite_connector),
                                 function_input.max_questions_for_metadata
                         ):
-                            tests.append(test)
+                            tbl_tests.append(test)
+            average_test_cost = cb.total_cost / len(tbl_tests)
+            tbl_df = pd.DataFrame(tbl_tests)
+            tbl_df['table_name'] = tbl.tbl_name
+            tbl_df['tbl_schema'] = list(tbl.tbl_col2metadata.keys())
+            tbl_df['average_test_cost'] = average_test_cost
+
+            tests.append(tbl_df)
         # TODO: add cost in test_type
-        return tests
+        df = pd.concat(tests, ignore_index=True)
+        df['test_category'] = self.test_category
+        df['test_type'] = self.test_type
+        df['dataset_seed'] = self.seed
+        return df
 
     @abstractmethod
     def pattern_identification(self, table: ConnectorTable, *args, **kwargs) -> Generator[PatternType, None, None]:

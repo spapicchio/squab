@@ -1,5 +1,5 @@
 import logging
-from typing import Generator, TypeAlias
+from typing import Generator, TypeAlias, Literal
 
 import pandas as pd
 from langchain_community.callbacks import get_openai_callback
@@ -37,6 +37,14 @@ class ScopeGenerator(DatasetGenerator):
 
         self.model_metadata = create_default_gpt4o(hub_prompt='scope_pattern_semantic',
                                                    model_kwargs={'temperature': 0.2})
+
+    @property
+    def test_category(self):
+        return 'scope'
+
+    @property
+    def test_type(self) -> Literal['ambig', 'unans']:
+        return 'ambig'
 
     @property
     def ambiguity_definition(self):

@@ -1,6 +1,6 @@
 import random
 from collections import defaultdict
-from typing import TypeAlias, Generator
+from typing import TypeAlias, Generator, Literal
 
 from langchain_community.callbacks import get_openai_callback
 from qatch.connectors import ConnectorTable, SqliteConnector
@@ -75,6 +75,14 @@ class AttachmentGenerator(DatasetGenerator[PatternType, MetadataType, TestType])
         super().__init__(seed)
         self.model_generation = create_default_gpt4o(hub_prompt='question_variability',
                                                      model_kwargs={'temperature': 0.5})
+
+    @property
+    def test_type(self) -> Literal['ambig', 'unans']:
+        return 'ambig'
+
+    @property
+    def test_category(self):
+        return 'attach'
 
     @property
     def ambiguity_definition(self):

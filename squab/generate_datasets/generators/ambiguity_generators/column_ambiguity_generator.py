@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Generator, TypeAlias
+from typing import Generator, TypeAlias, Literal
 
 from langchain_community.callbacks import get_openai_callback
 from langchain_community.embeddings import OpenAIEmbeddings
@@ -53,6 +53,14 @@ class ColumnAmbiguityGenerator(DatasetGenerator[PatternType, MetadataType, TestT
             api_key=os.getenv('OPENAI_API_KEY')
         )
         self.model_metadata = create_default_gpt4o(hub_prompt='label_columns_selector')
+
+    @property
+    def test_type(self) -> Literal['ambig', 'unans']:
+        return 'ambig'
+
+    @property
+    def test_category(self):
+        return 'column_ambiguity'
 
     @property
     def ambiguity_definition(self):

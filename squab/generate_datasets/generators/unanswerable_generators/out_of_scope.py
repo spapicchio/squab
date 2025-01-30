@@ -1,5 +1,5 @@
 import random
-from typing import Generator, TypeAlias
+from typing import Generator, TypeAlias, Literal
 
 import sqlalchemy
 from langchain_community.callbacks import get_openai_callback
@@ -33,6 +33,14 @@ class OutOfScope(DatasetGenerator):
 
         self.model_question_generator = create_default_gpt4o(hub_prompt='sql-to-text',
                                                              model_kwargs={'temperature': 0.5})
+
+    @property
+    def test_type(self) -> Literal['ambig', 'unans']:
+        return 'unans'
+
+    @property
+    def test_category(self):
+        return 'UDF_unans_oos'
 
     def pattern_identification(self, table: ConnectorTable, *args, **kwargs) -> Generator[PatternType, None, None]:
         yield {
