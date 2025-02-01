@@ -12,6 +12,33 @@ in Semantic Parsing]()
 * ***More specifically?*** The tool is based on a three interface architecture, built to maximize number of test while minimizing cost.
 * ***Where is processed the data?*** The data is processed by external provider like OpenAi. However, it is possible to change one line of code to include AzureOpenAi for privacy constraints.
 
+## Prompts for reproducibility:
+All the prompts used in the main paper are in the following module
+```shell
+|--squab
+    | -- models  # contains wrapper for using different LLM logics and their prompts
+        | -- prompts.py  # contains all the prompts used for the generations of the tests
+```
+The following table, associate the used prompt with the key of the dictionary in the prompts.py module
+
+
+| **Usage**                        | **Prompts Key**                  | **Prompt Description**                                         |
+|----------------------------------|----------------------------------|----------------------------------------------------------------|
+| Inference                        | ambrosia-text2sql                | Prompt used to test LLMs over _Ambiguous_ questions            |
+| Inference                        | ambrosia-text-2-sql-unanswerable | Prompt used to test LLMs over _Unanswerable_ questions         |
+| Generation Ambiguous Question    | question_variability             | Base prompt for Test Generation for _Ambiguous_ questions      |
+| Generation Unanswerable Question | sql-to-text                      | Base prompt for Test Generation for _Unanswerable_ questions   |
+| Column Ambiguity                 | ambiguity-col_generator          | Used to generate the hypernym in the Column Ambiguity Category |
+| Scope                            | scope_pattern_semantic           | Used to find and classify the entity-component relationship    |
+| Column Unanswerable              | unanswerable-column_generation   | Generate a new Column aligned with the intent of the table     |
+| Calculation Unanswerable         | unanswerable-udf_generation      | Generate a new UDF executable in SQL                           |
+| Out-Of-Scope                     | unanswerable-udf_generation_oos  | Generate a new UDF not executable in SQL                       |
+
+
+To find a prompt, simply look for the prompts key in the module [prompts.py](squab/models/prompts.py).
+
+
+
 ## Project
 
 ```shell
@@ -32,6 +59,13 @@ in Semantic Parsing]()
     | -- models  # contains wrapper for using different LLM logics and their prompts
         | -- prompts.py  # contains all the prompts used for the generations of the tests
 ```
+
+
+
+
+
+
+
 
 ## Citation
 
