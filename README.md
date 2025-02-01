@@ -37,6 +37,54 @@ The following table, associate the used prompt with the key of the dictionary in
 
 To find a prompt, simply look for the prompts key in the module [prompts.py](squab/models/prompts.py).
 
+## Annotation on Enterprise Dataset:
+
+To assess SQUAB's in a practical enterprise context, we conducted an annotation study with a company. 
+One domain expert evaluated the quality of SQUAB's generated tests across three enterprise tables. 
+
+We used three annotation metrics:
+- _Naturalness_: how much natural and human-like the generated question appears.
+- _Alignment_: how much the query accurately translates the question’s intent.
+- _Correctness_: How much the test adheres to its category definition.
+
+Each metric was evaluated on a three-level scale: _low_, _medium_, and _high_. 
+To streamline, we uniformly sampled eight tests per category, 
+yielding 24 annotated tests. However, for scope and attachment ambiguities,
+the system generated fewer tests per table due to the high specificity of these categories.
+
+| Ambiguous<br/>Category | **Metrics**     | Low | Medium | High | **Total<br/># Tests** |
+|-------------------|-------------|-----|--------|------|------------------|
+| Scope             | Naturalness |     | 1      | 13   | 14               |
+| Scope             | Alignment   |     | 2      | 12   |                  |
+| Scope             | Correctness |     |        | 14   |                  |
+|                   |
+| Attach            | Naturalness | 1   | 2      | 13   | 16               |
+| Attach            | Alignment   |     |        | 16   |                  |
+| Attach            | Correctness |     |        | 16   |                  |
+|                   |
+| Colum Ambig.      | Naturalness |     | 4      | 20   | 24               |
+| Colum Ambig.      | Alignment   | 3   | 6      | 15   |                  |
+| Colum Ambig.      | Correctness |     | 2      | 22   |                  |
+|                             |
+| **% Total**       |             | 2%  | 10%    | 88%  | 54               |
+
+| Unanswerable <br/> Category | **Metrics**     | Low | Medium | High | Total<br/>**# Tests** |
+|-----------------------------|-------------|-----|--------|------|-------------------| 
+| Missing Col.                | Naturalness |     | 3      | 21   | 24                |
+| Missing Col.                | Allignment  |     |        | 24   |                   |
+| Missing Col.                | Correctness |     |        | 24   |                   |
+|                             |
+| Calc. Unans.                | Naturalness | 3   | 3      | 18   | 24                |
+| Calc. Unans.                | Allignment  |     |        | 24   |                   |
+| Calc. Unans.                | Correctness | 9   |        | 15   |                   |
+|                             |
+| OOS Unans.                  | Naturalness |     | 6      | 18   | 24                |
+| OOS Unans.                  | Allignment  |     | 3      | 21   |                   |
+| OOS Unans.                  | Correctness |     |        | 24   |                   |
+|                             |
+| **% Total**                 |             | 5%  | 7%     | 88%  | 72                |
+
+
 
 
 ## Project
