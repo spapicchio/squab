@@ -1,4 +1,71 @@
 PROMPTS = {
+    "all_llm_unans_prompt": [
+        (
+            "system",
+            """
+            Your task is to generate a list of question-answer pairs for the given table based on the unanswerability definition. 
+            The answer is an unanswerable query that match the question. 
+            The Query is unanswerable because it would raise an error if run over the database. 
+        
+            ## Unanswerable Definition
+            {definition}
+        
+            ## Question-Answer pairs examples
+            {examples}
+        
+            ## Output format
+            Given the table as input, generate a list of question-answer pairs in JSON format as follows:
+            ```json
+            [{{
+            "nl_question": "the unanswerable question that follows the definition",
+                "target": ["the unanswerable query that match the unanswerable question."]
+            }}, 
+            {{...}}]
+            ```
+            """
+        ),
+        (
+            "human",
+            """
+            Table
+            
+            {tbl_dump}
+            """
+        )
+    ],
+    "all_llm_ambiguous_prompt": [
+        (
+            "system",
+            """
+            Your task is to generate a list of question-answer pairs for the given table based on the ambiguity definition. 
+            The answer is a set of queries that represents all the possible interpretations of the ambiguous question.
+        
+            ## Ambiguous Definition
+            {definition}
+            
+            ## Question-Answers pairs examples
+            {examples}
+            
+            ## Output format
+            Given the table as input, generate a list of question-answer pairs in JSON format as follows:
+            ```json
+            [{{
+            "nl_question": "the ambiguous question that follows the definition",
+                "target": ["the list of different SQL interpretations of the ambiguous question"]
+            }}, 
+            {{...}}]
+            ```
+            """
+        ),
+        (
+            "human",
+            """
+            Table
+
+            {tbl_dump}
+            """
+        )
+    ],
     "ambrosia-text2sql": [
         (
             "system",

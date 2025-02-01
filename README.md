@@ -24,6 +24,8 @@ The following table, associate the used prompt with the key of the dictionary in
 
 | **Usage**                        | **Prompts Key**                  | **Prompt Description**                                         |
 |----------------------------------|----------------------------------|----------------------------------------------------------------|
+| All-LLM Generation Baseline      | all_llm_ambiguous_prompt         | Generation Baseline to generate _Ambiguous_ tests              |
+| All-LLM Generation Baseline      | all_llm_unans_prompt             | Generation Baseline to generate _Unanswerable_ tests           |
 | Inference                        | ambrosia-text2sql                | Prompt used to test LLMs over _Ambiguous_ questions            |
 | Inference                        | ambrosia-text-2-sql-unanswerable | Prompt used to test LLMs over _Unanswerable_ questions         |
 | Generation Ambiguous Question    | question_variability             | Base prompt for Test Generation for _Ambiguous_ questions      |
