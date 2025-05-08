@@ -1,11 +1,12 @@
 from dataclasses import field
-from typing import List, TYPE_CHECKING
+from typing import Any, List, TYPE_CHECKING
+from distilabel.mixins.runtime_parameters import RuntimeParameter
+from pydantic import Field
 from qatch.connectors.base_connector import ConnectorTable
 from typing_extensions import override
 import logging
 
 from distilabel.steps import GeneratorStep
-import typing_extensions
 
 if TYPE_CHECKING:
     from distilabel.typing import StepColumns, GeneratorStepOutput
@@ -54,6 +55,16 @@ class LoadSqliteDatabase(GeneratorStep):
     db_path: str
     db_id: str | None = field(default=None)
     tables: list[dict] | None = field(default=None)
+    batch_size: RuntimeParameter[int] = Field(
+        default=1,
+        description="The number of table to process for each batch",
+    )
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        self.db_id = self.db_id or self.db_path.split("/")[-1].split(".")[0]
+        self.db_id = self.db_id or self.db_path.split("/")[-1].split(".")[0]
+        self.tables = self._load_qatch()
 
     @override
     def process(self, offset: int = 0) -> "GeneratorStepOutput":
@@ -69,34 +80,27 @@ class LoadSqliteDatabase(GeneratorStep):
         if offset:
             self.tables = self.tables[offset:]
 
-        while self.instructions:
-            batch = [{"tables": tables} for tables in self.tables[: self.batch_size]]
-
-            batch = self._process_batch(batch)
-
+        while self.tables:
+            batch = [
+                {
+                    "table": table, 
+                    "db_id": table["db_id"],
+                    "db_path": self.db_path,
+                    "db_schema": table["db_schema"],
+                    "db_schema_table": table["db_schema_table"],
+                    "tbl_name": table["tbl_name"],
+                    } 
+                for table in self.tables[:1]
+            ]
             self.tables = self.tables[self.batch_size :]
             yield (
                 batch,
-                True if len(self.instructions) == 0 else False,
+                True if len(self.tables) == 0 else False,
             )
 
     @property
     def outputs(self) -> "StepColumns":
-        return ["tables"]
-
-    @override
-    def load(self) -> None:
-        """Method to perform any initialization logic before the `process` method is
-        called. For example, to load an LLM, stablish a connection to a database, etc.
-        """
-        self.name = "LoadSqliteDatabase"
-        self._logger = logging.getLogger(f"distilabel.step.{self.name}")
-        self._logger.info(f"Loading SQLite database from {self.db_path}")
-        self._logger.info(f"Loading instructions from {self.db_path}")
-        self.db_id = self.db_id or self.db_path.split("/")[-1].split(".")[0]
-        self._logger.info(f"Set db_id {self.db_id} from {self.db_path}")
-        self._load_qatch()
-        self._logger.info(f"Loaded {len(self.tables)} tables from {self.db_path}")
+        return ["table", "db_id", "db_path", "db_schema", "db_schema_table", "tbl_name"]
 
     def _load_qatch(self):
         db_uri = f"file:{self.db_path}?immutable=1&uri=true"
@@ -108,12 +112,16 @@ class LoadSqliteDatabase(GeneratorStep):
             connector.load_tables_from_database()
         )
 
-        self.tables = [val.model_dump() for val in tbl_name2table.values()]
-        for val in self.tables:
+        tables = [val.model_dump() for val in tbl_name2table.values()]
+        for val in tables:
             val["db_id"] = val.pop("db_name", None)
             val["db_schema_table"] = connector.run_query(
                 f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{val['tbl_name']}'"
             )[0][0]
-            val["db_schema"] = "\n".join([val[0] for val in connector.run_query(
-                "SELECT sql FROM sqlite_master"
-            )])
+            val["db_schema"] = "\n".join(
+                [val[0] for val in connector.run_query("SELECT sql FROM sqlite_master")]
+            )
+            for col_name in val["foreign_keys"]:
+                col_name["parent_column"] = str(col_name["parent_column"])
+
+        return tables
