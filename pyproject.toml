@@ -9,8 +9,11 @@ authors = [
 ]
 dependencies = [
     "distilabel>=1.5.3",
+    "litellm>=1.68.0",
+    "openai>=1.75.0",
     "pandas>=2.2.3",
     "qatch>=1.0.35",
+    "scikit-learn>=1.6.1",
 ]
 
 [project.scripts]

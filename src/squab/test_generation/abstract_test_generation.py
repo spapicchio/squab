@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 
-from typing_extensions import TYPE_CHECKING, override
+import litellm
+from litellm.cost_calculator import completion_cost
+from typing_extensions import TYPE_CHECKING, override, Literal
 
 from jinja2 import Template
 from pydantic import Field, PrivateAttr
 from distilabel.steps import Step, StepInput
 
+from squab.utils.utils_get_last_json_from_text import utils_get_last_json_from_text
 from squab.utils.utils_is_open_ai_format import is_openai_format
 
 if TYPE_CHECKING:
@@ -86,12 +89,48 @@ class AbstractTestGeneration(Step, ABC):
     def outputs(self) -> "StepColumns":
         return ["test_question", "test_target", "test_cost", "test_metadata"]
 
-    @abstractmethod
     @override
     def process(self, inputs: StepInput) -> "StepOutput":
-        raise NotImplementedError(
-            "The process method must be implemented in the subclass."
-        )
+        dataset = []
+        for line in inputs:
+            for question_sql_templates in self._create_question_sql_templates(line):
+                sql_interpretations = [
+                    template["query"] for template in question_sql_templates
+                ]
+                messages = self.get_messageges_with_user_question(
+                    ambig_definition=self.ambiguity_definition,
+                    queries="\n".join(sql_interpretations),
+                    metadata=str(line["relational_metadata"]),
+                    database=str(line["table"]["db_schema"]),
+                )
+
+                response = litellm.completion(
+                    model=self.model_name,
+                    messages=messages,
+                )
+
+                test_metadata = response.model_dump()
+                test_metadata["messages"] = messages
+                test_metadata["question_sql_templates"] = question_sql_templates
+                test_metadata["ambig_temp_question"] = "To be implemented"
+
+                test_cost = completion_cost(completion_response=response)
+
+                test_question = utils_get_last_json_from_text(
+                    response["choices"][0]["message"]["content"]
+                )
+                test_target = sql_interpretations
+
+                if len(test_question) > 0:
+                    line = self.update_line(
+                        line_to_update=line,
+                        test_question=test_question,
+                        test_target=test_target,
+                        test_cost=test_cost,
+                        test_metadata=test_metadata,
+                    )
+                    dataset.append(line)
+        yield dataset
 
     def update_line(
         self, line_to_update, test_question, test_target, test_cost, test_metadata
@@ -113,3 +152,11 @@ class AbstractTestGeneration(Step, ABC):
         return self._messages + [
             {"role": "user", "content": self._template.render(**kwargs)}
         ]
+
+    @abstractmethod
+    def _create_question_sql_templates(
+        self, line
+    ) -> list[dict[Literal["query", "question", "test_category"]], str]:
+        raise NotImplementedError(
+            "The method _build_sql_interpretations must be implemented in the subclass."
+        )

@@ -65,31 +65,3 @@ ENTITY_COMPONENT_FEW_SHOTS = [
 class RMEntityComponent(AbstractRelationalMetadata):
     system_prompt: str = ENTITY_COMPONENT_SYSTEM_PROMPT
     few_shots_messages: list = ENTITY_COMPONENT_FEW_SHOTS
-
-    def process(self, inputs: StepInput) -> "StepOutput":
-        dataset = []
-        for line in inputs:
-            messages = self._messages + [
-                {"role": "user", "content": self._template.render(**line)}
-            ]
-            response = litellm.completion(
-                model=self.model_name,
-                messages=messages,
-            )
-
-            rm_metadata = response.model_dump()
-            rm_metadata["messages"] = messages
-            relational_metadata_cost = completion_cost(completion_response=response)
-            relational_metadata = utils_get_last_json_from_text(
-                response["choices"][0]["message"]["content"]
-            )
-            if len(relational_metadata) > 0:
-                updated_line = self.update_line(
-                    line,
-                    relational_metadata,
-                    relational_metadata_cost,
-                    rm_metadata,
-                )
-                dataset.append(updated_line)
-
-        yield dataset

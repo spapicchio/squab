@@ -1,17 +1,10 @@
-from typing_extensions import override, TYPE_CHECKING
-
-import litellm
-from litellm.cost_calculator import completion_cost
-from distilabel.steps import StepInput
+from typing_extensions import override, Literal
 
 from squab.test_generation.abstract_test_generation import (
     DEFAULT_TEMPLATE,
     AbstractTestGeneration,
 )
-from squab.utils.utils_get_last_json_from_text import utils_get_last_json_from_text
 
-if TYPE_CHECKING:
-    from distilabel.typing import StepOutput
 
 from jinja2 import Template
 
@@ -76,52 +69,13 @@ class TestGeneratorScope(AbstractTestGeneration):
     few_shots_messages: list = SCOPE_FEW_SHOTS
 
     @override
-    def process(self, inputs: StepInput) -> "StepOutput":
-        dataset = []
-        for line in inputs:
-            tbl_name = line["table"]["tbl_name"]
-            entity = line["relational_metadata"]["entity"]
-            component = line["relational_metadata"]["component"]
-            sql_interpretations, question_sql_templates = (
-                self._build_sql_interpretations(entity, component, tbl_name)
-            )
+    def _create_question_sql_templates(
+        self, line
+    ) -> list[dict[Literal["query", "question", "test_category"]], str]:
+        tbl_name = line["table"]["tbl_name"]
+        entity = line["relational_metadata"]["entity"]
+        component = line["relational_metadata"]["component"]
 
-            messages = self.get_messageges_with_user_question(
-                ambig_definition=self.ambiguity_definition,
-                queries="\n".join(sql_interpretations),
-                metadata=str(line["relational_metadata"]),
-                database=str(line["table"]["db_schema"]),
-            )
-
-            response = litellm.completion(
-                model=self.model_name,
-                messages=messages,
-            )
-
-            test_metadata = response.model_dump()
-            test_metadata["messages"] = messages
-            test_metadata["question_sql_templates"] = question_sql_templates
-            test_metadata["ambig_temp_question"] = "To be implemented"
-
-            test_cost = completion_cost(completion_response=response)
-
-            test_question = utils_get_last_json_from_text(
-                response["choices"][0]["message"]["content"]
-            )
-            test_target = sql_interpretations
-
-            if len(test_question) > 0:
-                line = self.update_line(
-                    line_to_update=line,
-                    test_question=test_question,
-                    test_target=test_target,
-                    test_cost=test_cost,
-                    test_metadata=test_metadata,
-                )
-                dataset.append(line)
-        yield dataset
-
-    def _build_sql_interpretations(self, entity, component, tbl_name):
         query_1 = (
             f"SELECT `{component}` "
             f"FROM `{tbl_name}` "
@@ -135,11 +89,13 @@ class TestGeneratorScope(AbstractTestGeneration):
         question_sql_templates = [
             {
                 "question": question_1,
-                "sql_template": query_1,
+                "query": query_1,
+                "test_category": "collective interpretation",
             },
             {
                 "question": question_2,
-                "sql_template": query_2,
+                "query": query_2,
+                "test_category": "distributive interpretation",
             },
         ]
-        return [query_1, query_2], question_sql_templates
+        return question_sql_templates

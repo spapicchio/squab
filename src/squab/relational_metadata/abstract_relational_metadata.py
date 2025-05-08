@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from os import system
 
+import litellm
+from litellm.cost_calculator import completion_cost
 from typing_extensions import TYPE_CHECKING, override
 
 
@@ -8,6 +10,7 @@ from jinja2 import Template
 from pydantic import Field, PrivateAttr
 from distilabel.steps import Step, StepInput
 
+from squab.utils.utils_get_last_json_from_text import utils_get_last_json_from_text
 from squab.utils.utils_is_open_ai_format import is_openai_format
 
 if TYPE_CHECKING:
@@ -69,12 +72,34 @@ class AbstractRelationalMetadata(Step, ABC):
         self._template = Template(self.template)
         self._messages = self._messages + self.few_shots_messages
 
-    @abstractmethod
     @override
     def process(self, inputs: StepInput) -> "StepOutput":
-        raise NotImplementedError(
-            "The process method must be implemented in the subclass."
-        )
+        dataset = []
+        for line in inputs:
+            messages = self.get_messageges_with_user_question(line)
+
+            response = litellm.completion(
+                model=self.model_name,
+                messages=messages,
+            )
+
+            rm_metadata = response.model_dump()
+            rm_metadata["messages"] = messages
+            relational_metadata_cost = completion_cost(completion_response=response)
+            relational_metadata = utils_get_last_json_from_text(
+                response["choices"][0]["message"]["content"]
+            )
+
+            if len(relational_metadata) > 0:
+                updated_line = self.update_line(
+                    line,
+                    relational_metadata,
+                    relational_metadata_cost,
+                    rm_metadata,
+                )
+                dataset.append(updated_line)
+
+        yield dataset
 
     def update_line(
         self, line_to_update, relational_metadata, relational_metadata_cost, rm_metadata
@@ -84,7 +109,7 @@ class AbstractRelationalMetadata(Step, ABC):
         line_to_update["rm_metadata"] = rm_metadata
         return line_to_update
 
-    def get_messageges_with_user_question(self, **kwargs) -> str:
+    def get_messageges_with_user_question(self, line) -> str:
         return self._messages + [
-            {"role": "user", "content": self._template.render(**kwargs)}
+            {"role": "user", "content": self._template.render(**line)}
         ]
