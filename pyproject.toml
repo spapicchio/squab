@@ -12,6 +12,7 @@ dependencies = [
     "litellm>=1.68.0",
     "openai>=1.75.0",
     "pandas>=2.2.3",
+    "python-levenshtein>=0.27.1",
     "qatch>=1.0.35",
     "scikit-learn>=1.6.1",
 ]
