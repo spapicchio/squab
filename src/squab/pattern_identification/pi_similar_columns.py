@@ -59,7 +59,7 @@ class PISimilarColumns(AbstractPatternIdentification):
         pi_cost = litellm.cost_calculator.completion_cost(completion_response=response)
 
         # get embeddings of all columns
-        vals_embeddings = [embedding['embedding'] for embedding in response.data]
+        vals_embeddings = [embedding["embedding"] for embedding in response.data]
 
         # build similarity matrix
         top_k_indexes = utils_get_top_k_index_similar_matrix(

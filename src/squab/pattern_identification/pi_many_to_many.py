@@ -1,7 +1,6 @@
-from typing import TYPE_CHECKING
 import pandas as pd
 from sqlalchemy import create_engine
-from typing_extensions import override
+from typing_extensions import override, TYPE_CHECKING
 from distilabel.steps import StepInput
 
 from squab.pattern_identification.abstract_pattern_identification import (
@@ -42,13 +41,16 @@ class PIManyToMany(AbstractPatternIdentification):
                             "entity": col1,
                             "component": col2,
                         }
-                        line_updated = self.update_line(
-                            line,
-                            pattern_identification,
-                            pattern_identification_cost,
-                            pi_metadata,
-                        )
-                        dataset.append(line_updated)
+                    else:
+                        pattern_identification = None
+                        
+                    line_updated = self.update_line(
+                        line,
+                        pattern_identification,
+                        pattern_identification_cost,
+                        pi_metadata,
+                    )
+                    dataset.append(line_updated)
 
         yield dataset
 

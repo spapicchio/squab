@@ -1,43 +1,39 @@
-import random
-from qatch.connectors import SqliteConnector
-from typing_extensions import override
+from typing_extensions import override, Literal
 
 from squab.test_generation.abstract_test_generation import (
     DEFAULT_TEMPLATE,
     AbstractTestGeneration,
 )
-from squab.utils.utils_run_qatch import utils_run_qatch
+
 
 from jinja2 import Template
 
 
-ATTACHMENT_AMB_DEF = (
-    "Colum Ambiguity arises when a natural language query is insufficiently specific to  identify"
-    "a particular column within a table. This ambiguity often occurs when multiple columns "
-    "share similar meaning and it is possible to associate these columns to a common label. "
-    "As example, consider a table with two columns: `Name` and `Surname`. "
-    'A query like "What are the information of Simone?" is ambiguous because '
-    "it's uncertain whether the query refers to the Name or the Surname or to both columns. "
-    "Given the queries, the semantic similar columns and the label to use in the generation, "
-    "generate an ambiguous question that uses the label rather than the columns with the same intent of each "
-    "query. Note that you can use also synonyms of the label as long as they are not present in the table. "
+ATTACH_AMB_DEF = (
+    "Attachment ambiguity: Attachment ambiguity refers to situations where two phrases "
+    "are connected with relative pronouns, and it is ambiguous if the second phrase is "
+    "attached to the end of the first phrase or the entire first phrase. "
+    "The ambiguity rise when there is a many-to-many relationship between two columns that have a "
+    "'Entity' - 'Component' semantic relation and distinct values in the Entity columns have same value in "
+    "the Component column. In the question, it is ambiguous whether the value in the component column "
+    "has to be attached to only one of the value in the Entity columns or to both. "
+    "If possible, try to formulate the question without mentioning the column to project. "
 )
 
 
-ATTACHMENT_FEW_SHOTS = [
+ATTACH_FEW_SHOTS = [
     {
         "role": "user",
         "content": Template(DEFAULT_TEMPLATE).render(
-            ambig_definition=ATTACHMENT_AMB_DEF,
+            ambig_definition=ATTACH_AMB_DEF,
             queries="\n".join(
                 [
-                    "Select Reviews.Hikes, Reviews.customer_review From Reviews",
-                    "Select Reviews.Hikes, Reviews.difficulty_level From Reviews",
-                    "Select Reviews.Hikes, Reviews.customer_review, difficulty_level From Reviews",
+                    'SELECT EventSpaces.Name \r\nFROM EventSpaces\r\nWHERE (EventSpaces.Event_Space = "Banquet Hall" OR EventSpaces.Event_Space = "Conference Room") AND EventSpaces.Capacity = 200',
+                    'SELECT EventSpaces.Name \r\nFROM EventSpaces\r\nWHERE EventSpaces.Event_Space = "Banquet Hall" OR EventSpaces.Event_Space = "Conference Room" AND EventSpaces.Capacity = 200',
                 ]
             ),
-            metadata="""{"label": "ratings", "columns": ["customer_review", "difficulty_level"]}""",
-            database="CREATE TABLE Reviews (\n   Hikes TEXT,\n   customer_review TEXT,\n   difficulty_level TEXT\n);",
+            metadata="""{"entity": "Event_Space", "component": "Capacity"}""",
+            database="CREATE TABLE EventSpaces (\n   Name TEXT,\n    Event_Space TEXT,\n    Capacity INTEGER\n);",
         ),
     },
     {
@@ -45,24 +41,22 @@ ATTACHMENT_FEW_SHOTS = [
         "content": """
         ```json
         {
-            "question": "What hikes do we have and what are their ratings?"
-        }
-        ```
+            "question": ?List all banquet halls and conference rooms with a 200 person capacity."
+        } 
         """,
     },
     {
         "role": "user",
         "content": Template(DEFAULT_TEMPLATE).render(
-            ambig_definition=ATTACHMENT_AMB_DEF,
+            ambig_definition=ATTACH_AMB_DEF,
             queries="\n".join(
                 [
-                    "SELECT average_years_of_life\r\nFROM LifeExpectancies\r\nORDER BY region_id\r\nLIMIT 1;",
-                    "SELECT gender_specific_life_expectancy\r\nFROM LifeExpectancies\r\nORDER BY region_id\r\nLIMIT 1;",
-                    "SELECT average_years_of_life, gender_specific_life_expectancy\r\nFROM LifeExpectancies\r\nORDER BY region_id\r\nLIMIT 1;",
+                    'SELECT MusicPerformer.Name \r\nFROM MusicPerformer\r\nWHERE (MusicPerformer.MusicPerformerType = "Jazz Musician" OR MusicPerformer.MusicPerformerType = "Rock Guitarist") AND MusicPerformer.YearsInIndustry = 10',
+                    'SELECT MusicPerformer.Name \r\nFROM MusicPerformer\r\nWHERE MusicPerformer.MusicPerformerType = "Jazz Musician" OR MusicPerformer.MusicPerformerType = "Rock Guitarist" AND MusicPerformer.YearsInIndustry = 10',
                 ]
             ),
-            metadata="""{"label": "life expectancy", "columns": ["average_years_of_life", "gender_specific_life_expectancy"]}""",
-            database="CREATE TABLE LifeExpectancies (\nregion_id TEXT,\n  average_years_of_life TEXT,\n gender_specific_life_expectancy TEXT\n);",
+            metadata="""{"entity": "MusicPerformerType", "component": "YearsInIndustry"}""",
+            database="CREATE TABLE MusicPerformer (\n   Name TEXT,\n    MusicPerformerType TEXT,\n    YearsInIndustry INTEGER\n);",
         ),
     },
     {
@@ -70,84 +64,48 @@ ATTACHMENT_FEW_SHOTS = [
         "content": """
         ```json
         {
-            "question": "What is the life expectancy of the region with the lowest ID?"
-        }
-        ```
+            "question": "Display jazz musicians and rock guitarists who have been in the industry for 10 years."
+        } 
         """,
     },
 ]
 
 
-class TestGeneratorAttach(AbstractTestGeneration):
-    ambiguity_definition: str = ATTACHMENT_AMB_DEF
-    few_shots_messages: list = ATTACHMENT_FEW_SHOTS
+class TestGeneratorAttachment(AbstractTestGeneration):
+    ambiguity_definition: str = ATTACH_AMB_DEF
+    few_shots_messages: list = ATTACH_FEW_SHOTS
 
     @override
-    def _create_question_sql_templates(self, line):
-        similar_cols = line["relational_metadata"]["columns"]
-        col_in_query = random.choice(similar_cols)
-        sqlite_connector = SqliteConnector(
-            relative_db_path=line["table"]["db_path"],
-            db_name=line["table"]["db_id"],
+    def _create_question_sql_templates(
+        self, line
+    ) -> list[dict[Literal["query", "question", "test_category"]], str]:
+        tbl_name = line["table"]["tbl_name"]
+        entity = line["relational_metadata"]["entity"]
+        component = line["relational_metadata"]["component"]
+        column_project = line["relational_metadata"]["column_to_project"]
+
+        value_group_1, value_group_2 = line["relational_metadata"]["entity_values"]
+        value_intersection = line["relational_metadata"]["component_value"]
+
+        condition_1 = (
+            f"(`{entity}` = '{value_group_1}' OR `{entity}` = '{value_group_2}')"
+            f" AND `{component}` = '{value_intersection}'"
         )
-        list_queries_with_selected_col = utils_run_qatch(
-            sqlite_connector=sqlite_connector,
-            selected_col=col_in_query,
-            tbl_name=line["table"]["tbl_name"],
+        condition_2 = (
+            f"`{entity}` = '{value_group_1}' "
+            f"OR `{entity}` = '{value_group_2}' AND `{component}` = '{value_intersection}'"
         )
 
-        # Replace the target column with each similar column individually
-        for test_category_query_question_dict in list_queries_with_selected_col:
-            question_sql_templates = []
-            query = test_category_query_question_dict["query"]
-            question = test_category_query_question_dict["question"]
-            test_category = test_category_query_question_dict["test_category"]
-            for col in similar_cols:
-                question_sql_templates.append(
-                    {
-                        "question": question.replace(col_in_query, col),
-                        "query": query.replace(col_in_query, col),
-                        "test_category": test_category,
-                    }
-                )
-            # Split the query into parts before and after the "FROM" clause
-            before_from, after_from = query.lower().split("from", 1)
-            # Check if the column is in the SELECT projection but not in an aggregation
-            # This is used to also add cases with all columns in the projection or order-by
-            if (
-                col_in_query in before_from  # Column appears in the SELECT clause
-                and col_in_query
-                not in after_from  # Column does not appear after "FROM"
-                and f"(`{col_in_query}`)"
-                not in query.lower()  # Column is not part of an aggregation
-            ):
-                # Replace the target column with all similar columns, joined by commas
-                question_sql_templates.append(
-                    {
-                        "question": question.replace(
-                            col_in_query, ", ".join(f"`{col}`" for col in similar_cols)
-                        ),
-                        "query": query.replace(
-                            f"`{col_in_query}`",
-                            ", ".join(f"`{col}`" for col in similar_cols),
-                        ),
-                        "test_category": test_category,
-                    }
-                )
-
-            # Check if the column is used in an "ORDER BY" clause
-            if f"order by `{col_in_query}`" in after_from:
-                # Replace the target column with all similar columns, joined by commas
-                question_sql_templates.append(
-                    {
-                        "question": question.replace(
-                            col_in_query, ", ".join(f"`{col}`" for col in similar_cols)
-                        ),
-                        "query": query.replace(
-                            f"`{col_in_query}`",
-                            ", ".join(f"`{col}`" for col in similar_cols),
-                        ),
-                        "test_category": test_category,
-                    }
-                )
-            yield question_sql_templates
+        question_sql_templates = [
+            {
+                "question": "TODO",  # TODO
+                "query": f"SELECT `{column_project}` FROM `{tbl_name}` WHERE {condition_1}",
+                "test_category": "",
+            },
+            {
+                "question": "TODO",  # TODO
+                "query": f"SELECT `{column_project}` FROM `{tbl_name}` WHERE {condition_2}",
+                "test_category": "",
+            },
+        ]
+        return [question_sql_templates]

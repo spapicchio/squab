@@ -98,4 +98,4 @@ class TestGeneratorScope(AbstractTestGeneration):
                 "test_category": "distributive interpretation",
             },
         ]
-        return question_sql_templates
+        return [question_sql_templates]

@@ -93,6 +93,17 @@ class AbstractTestGeneration(Step, ABC):
     def process(self, inputs: StepInput) -> "StepOutput":
         dataset = []
         for line in inputs:
+            if line["relational_metadata"] is None:
+                updated_line = self.update_line(
+                    line_to_update=line,
+                    test_question=None,
+                    test_target=None,
+                    test_cost=0.0,
+                    test_metadata=None,
+                )
+                dataset.append(updated_line)
+                continue
+
             for question_sql_templates in self._create_question_sql_templates(line):
                 sql_interpretations = [
                     template["query"] for template in question_sql_templates
@@ -156,7 +167,7 @@ class AbstractTestGeneration(Step, ABC):
     @abstractmethod
     def _create_question_sql_templates(
         self, line
-    ) -> list[dict[Literal["query", "question", "test_category"]], str]:
+    ) -> list[list[dict[Literal["query", "question", "test_category"]], str]]:
         raise NotImplementedError(
             "The method _build_sql_interpretations must be implemented in the subclass."
         )
