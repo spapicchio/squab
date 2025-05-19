@@ -1,10 +1,10 @@
+import re
 from dataclasses import field
-from typing import Any, List, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from distilabel.mixins.runtime_parameters import RuntimeParameter
 from pydantic import Field
 from qatch.connectors.base_connector import ConnectorTable
 from typing_extensions import override
-import logging
 
 from distilabel.steps import GeneratorStep
 
@@ -30,7 +30,8 @@ class LoadSqliteDatabase(GeneratorStep):
         - `db_path`: The path to the SQLite database file.
         - `db_id`: The id of the database. If not provided, it will be set to the name of the db_path.
         - `db_schema`: The schema of the database.
-        - `db_schema_table`: The schema of the table.
+        - `db_schema_table`: The schema of the table with examples.
+        - `db_schema_table_examples`: The schema of the table with examples.
         - `tbl_name`: The name of the table.
         - `tbl_col2metadata`: A dictionary mapping from table column names to their metadata.
             - `column_name`: The column name in the table.
@@ -83,13 +84,14 @@ class LoadSqliteDatabase(GeneratorStep):
         while self.tables:
             batch = [
                 {
-                    "table": table, 
+                    "table": table,
                     "db_id": table["db_id"],
                     "db_path": self.db_path,
                     "db_schema": table["db_schema"],
                     "db_schema_table": table["db_schema_table"],
+                    "db_schema_table_examples": table["db_schema_table_examples"],
                     "tbl_name": table["tbl_name"],
-                    } 
+                }
                 for table in self.tables[:1]
             ]
             self.tables = self.tables[self.batch_size :]
@@ -100,7 +102,15 @@ class LoadSqliteDatabase(GeneratorStep):
 
     @property
     def outputs(self) -> "StepColumns":
-        return ["table", "db_id", "db_path", "db_schema", "db_schema_table", "tbl_name"]
+        return [
+            "table",
+            "db_id",
+            "db_path",
+            "db_schema",
+            "db_schema_table",
+            "tbl_name",
+            "db_schema_table_examples",
+        ]
 
     def _load_qatch(self):
         db_uri = f"file:{self.db_path}?immutable=1&uri=true"
@@ -118,10 +128,46 @@ class LoadSqliteDatabase(GeneratorStep):
             val["db_schema_table"] = connector.run_query(
                 f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{val['tbl_name']}'"
             )[0][0]
+            val["db_schema_table_examples"] = (
+                self._create_database_schema_with_examples(val, val["db_schema_table"])
+            )
+
             val["db_schema"] = "\n".join(
                 [val[0] for val in connector.run_query("SELECT sql FROM sqlite_master")]
             )
+
             for col_name in val["foreign_keys"]:
                 col_name["parent_column"] = str(col_name["parent_column"])
 
         return tables
+
+    def _create_database_schema_with_examples(
+        self, table: dict, tbl_schema: str
+    ) -> str:
+        """
+        Insert example values as comments for each column in the dumped schema.
+        """
+        col_metadata = table["tbl_col2metadata"]
+        lines = []
+        for line in tbl_schema.split(","):
+            stripped = line.strip()
+            # Try to match column definitions (skip lines that start with CREATE TABLE, constraints, etc.)
+            if (
+                stripped
+                and not stripped.upper().startswith("PRIMARY KEY")
+                and not stripped.upper().startswith("FOREIGN KEY")
+            ):
+                columns_in_line = re.findall(
+                    r"[`'\"]?(\w+)[`'\"]?\s+\w+", stripped, re.IGNORECASE
+                )
+                for col_name in columns_in_line:
+                    meta = col_metadata.get(col_name, None)
+                    if meta:
+                        sample_data = meta.get("sample_data", [])
+                        sample_str = ", ".join(
+                            [f"`{str(val)}`" for val in sample_data[:2]]
+                        )
+                        if sample_str:
+                            line = line.rstrip() + f" -- Example Values: ({sample_str})"
+            lines.append(line)
+        return ",\n".join(lines)
