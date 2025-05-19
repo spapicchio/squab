@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from os import system
+from abc import ABC
 
 import litellm
 from litellm.cost_calculator import completion_cost
@@ -31,7 +30,7 @@ class AbstractRelationalMetadata(Step, ABC):
         description="Template for the model to generate relational metadata.",
     )
 
-    system_prompt: str = Field(
+    system_prompt: str | None = Field(
         default=DEFAULT_SYSTEM_PROMPT,
         description="System prompt for the model.",
     )
@@ -60,7 +59,11 @@ class AbstractRelationalMetadata(Step, ABC):
             raise ValueError(
                 "Few shots messages must be in OpenAI format. Please check the format."
             )
-        self._messages = [{"role": "system", "content": self.system_prompt}]
+        self._messages = (
+            [{"role": "system", "content": self.system_prompt}]
+            if self.system_prompt
+            else []
+        )
 
     @property
     def outputs(self) -> "StepColumns":
@@ -76,6 +79,10 @@ class AbstractRelationalMetadata(Step, ABC):
     def process(self, inputs: StepInput) -> "StepOutput":
         dataset = []
         for line in inputs:
+            if not self.is_previous_step_correct(line):
+                dataset.append(self.create_none_line(line))
+                continue
+
             messages = self.get_messageges_with_user_question(line)
 
             response = litellm.completion(
@@ -100,6 +107,17 @@ class AbstractRelationalMetadata(Step, ABC):
                 dataset.append(updated_line)
 
         yield dataset
+
+    def is_previous_step_correct(self, line) -> bool:
+        return line["pattern_identification"] is not None
+
+    def create_none_line(self, line):
+        return self.update_line(
+            line,
+            None,
+            0.0,
+            None,
+        )
 
     def update_line(
         self, line_to_update, relational_metadata, relational_metadata_cost, rm_metadata
