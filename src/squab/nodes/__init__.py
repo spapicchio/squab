@@ -7,6 +7,7 @@ from squab.graph_states import Line
 from squab.logger import get_logger
 from squab.nodes.node_read_sqlite_db import node_read_db_sqlite
 from squab.nodes.pattern_identification import node_semantic_close_attributes
+from squab.nodes.relational_metadata import node_get_hypernym
 
 
 class Generators(Enum):
@@ -21,7 +22,7 @@ class Generators(Enum):
 GeneratorsCallable = {
     Generators.SCOPE: [],
     Generators.ATTACHMENT: [],
-    Generators.VAGUE: [node_semantic_close_attributes, node_semantic_close_attributes, node_semantic_close_attributes],
+    Generators.VAGUE: [node_semantic_close_attributes, node_get_hypernym, node_semantic_close_attributes],
     Generators.COL_UNANS: [],
     Generators.CALC_UNANS: [],
     Generators.OUT_OF_SCOPE: [],

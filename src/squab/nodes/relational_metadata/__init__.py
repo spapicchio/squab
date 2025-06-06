@@ -1,0 +1,1 @@
+from squab.nodes.relational_metadata.node_hypernym import node_get_hypernym

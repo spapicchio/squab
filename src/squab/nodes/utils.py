@@ -1,3 +1,6 @@
+import json
+import re
+
 from squab.graph_states import Line
 from squab.nodes.generation_steps import GenerationSteps
 
@@ -49,3 +52,51 @@ def utils_get_columns_no_pk_fk(line: Line,
                     'code' not in val.lower() and
                     'key' not in val.lower()]
     return column_names
+
+
+def utils_get_last_json_from_text(text: str) -> dict:
+    """
+    Extracts the last JSON object from a given text string.
+
+    Args:
+        text (str): The input text containing JSON objects.
+
+    Returns:
+        dict: The last JSON object found in the text.
+    """
+    # Find all JSON-like patterns in the text
+    json_objects = re.findall(r'\{.*?\}', text, re.DOTALL)
+
+    if not json_objects:
+        return {}
+
+    # Parse the last JSON object
+    last_json_str = json_objects[-1]
+    try:
+        return json.loads(last_json_str)
+    except json.JSONDecodeError:
+        return {}
+
+
+def is_openai_format(input) -> bool:
+    """Checks if the input is in OpenAI chat-like format:
+
+    ```python
+    [
+        {"role": "user", "content": "Hello!"},
+        {"role": "assistant", "content": "Hi! How can I help you?"},
+    ]
+    ```
+
+    Args:
+        input: The input to check.
+
+    Returns:
+        A boolean indicating if the input is in OpenAI chat-like format.
+    """
+    if not isinstance(input, list):
+        return False
+    return all(
+        isinstance(x, dict) and "role" in x.keys() and "content" in x.keys()
+        for x in input
+    )
