@@ -1,17 +1,20 @@
-from typing import TypedDict, Any
+from typing import Any
+
+from qatch.connectors import ConnectorTable
 
 
-class Line(TypedDict):
+class Line(ConnectorTable):
     task_type: str
-    table: dict | None
-    db_id: str | None
-    db_path: str | None
-    db_schema: str | None
-    db_schema_table: str | None
-    db_schema_table_examples: str | None
-    tbl_name: str | None
-    pattern_identification: Any
-    relational_metadata: Any
+    has_failed: dict | None
+    table: dict | None  # PI
+    db_id: str | None  # PI
+    db_path: str | None  # PI
+    db_schema: str | None  # PI
+    db_schema_table: str | None  # PI
+    db_schema_table_examples: str | None  # PI
+    tbl_name: str | None  # PI
+    pattern_identification: Any  # PI
+    relational_metadata: Any  # RM
     question: str | None
     target: Any
     total_cost: float

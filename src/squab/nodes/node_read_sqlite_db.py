@@ -7,19 +7,17 @@ from src.squab.graph_states import Line
 
 
 @task
-def read_db_sqlite(*args, **kwargs):
-    if "db_path" not in kwargs:
-        raise ValueError("db_path is required")
-
-    db_id = kwargs.get("db_id", None)
-    db_path = kwargs.get("db_path")
-    only_these_tbl = kwargs.get("only_these_tbl", None)
-
+def node_read_db_sqlite(
+        db_path: str,
+        db_id: str | None = None,
+        only_these_tbl: str | list | None = None,
+        *args,
+        **kwargs
+) -> list[Line]:
     db_id = db_id or db_path.split("/")[-1].split(".")[0]
     tables = _load_qatch(db_path, db_id)
     if only_these_tbl is not None:
         tables = [tbl for tbl in tables if tbl['tbl_name'] in only_these_tbl]
-
     return tables
 
 

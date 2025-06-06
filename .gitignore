@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 temp_create_fake_db.py
+outputs
 __pycache__/
 *.py[cod]
 *$py.class

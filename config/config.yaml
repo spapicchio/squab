@@ -1,0 +1,7 @@
+db_path: 'fake_db_with_joins.sqlite'
+db_id: null
+only_these_tbl: null
+
+generators:
+  vague:
+      encoder_name: 'test'
