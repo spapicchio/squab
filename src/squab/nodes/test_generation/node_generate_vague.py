@@ -1,14 +1,11 @@
-import copy
 import random
 from typing import Literal
 
 from jinja2 import Template
-from langgraph.func import task
 
 from squab.graph_states import Line
-from squab.nodes.generation_steps import GenerationSteps
-from squab.nodes.node_llm import llm_call
-from squab.nodes.utils import utils_check_previous_step, utils_run_qatch, utils_get_last_json_from_text
+from squab.nodes.node_llm_call import llm_call
+from squab.nodes.utils import utils_run_qatch, utils_get_last_json_from_text
 
 DEFAULT_SYSTEM_PROMPT = """
 You are a helpful assistant who writes a natural language (NL) question. 
@@ -108,66 +105,46 @@ COL_AMB_FEW_SHOTS = [
 ]
 
 
-@task
-def node_generate_vague(
-        dataset: list[Line],
-        litellm_params_vague: dict,
-        vague_user_template: str | None = None,
-        vague_system_template: str | None = None,
-        *args, **kwargs
-) -> list[dict]:
-    """
-    Generate vague labels for columns in a dataset.
-
-    Args:
-        dataset (list[dict]): Input dataset containing column information.
-        litellm_params_vague (dict): Parameters for the LLM call.
-        vague_user_template (str | None): Optional user template for the LLM prompt.
-        vague_system_template (str | None): Optional system template for the LLM prompt.
-
-    Returns:
-        list[dict]: Dataset with generated vague labels.
-    """
-    utils_check_previous_step(dataset, GenerationSteps.TG)
-    processed_dataset = []
+def process_question_vague(line: Line,
+                           litellm_params_vague: dict,
+                           vague_user_template: str | None = None,
+                           vague_system_template: str | None = None,
+                           *args, **kwargs
+                           ) -> Line | list[Line]:
     system_prompt = vague_system_template or DEFAULT_SYSTEM_PROMPT
     user_template = vague_user_template or COL_AMB_AMB_DEF
-    for line in dataset:
-        if 'has_failed' in line:
-            processed_dataset.append(line)
-            continue
-        line = copy.deepcopy(line)
-        for qatch_templates in _generate_sql_templates(line):
-            sql_interpretations = [
-                template["query"] for template in qatch_templates
-            ]
-            messages = [{"role": "system", "content": system_prompt}] \
-                       + COL_AMB_FEW_SHOTS \
-                       + [{"role": "user",
-                           "content": Template(user_template).render(
-                               database=line['db_schema_table_examples'],
-                               metadata=line['relational_metadata'],
-                               ambig_definition=COL_AMB_AMB_DEF,
-                               queries="\n".join(sql_interpretations)
-                           )}]
+    processed_lines = []
+    for qatch_templates in _generate_sql_templates(line):
+        sql_interpretations = [
+            template["query"] for template in qatch_templates
+        ]
+        messages = [{"role": "system", "content": system_prompt}] \
+                   + COL_AMB_FEW_SHOTS \
+                   + [{"role": "user",
+                       "content": Template(user_template).render(
+                           database=line['db_schema_table_examples'],
+                           metadata=line['relational_metadata'],
+                           ambig_definition=COL_AMB_AMB_DEF,
+                           queries="\n".join(sql_interpretations)
+                       )}]
 
-            response, total_cost = llm_call(messages, litellm_params_vague).result()
-            model_response = response["choices"][0]["message"]["content"]
-            ambig_question = utils_get_last_json_from_text(model_response)
-            if not ambig_question:
-                line['has_failed'] = {
-                    'vague': f"The model was not able to generate a vague question. Model Response: {model_response}"
-                }
-            else:
-                line['question'] = ambig_question['question']
-                line['target'] = sql_interpretations
-                line['test_sub_category'] = qatch_templates[0]['test_category']
-                line['qatch_templates'] = qatch_templates
+        response, total_cost = llm_call(messages, litellm_params_vague).result()
+        model_response = response["choices"][0]["message"]["content"]
+        ambig_question = utils_get_last_json_from_text(model_response)
+        if not ambig_question:
+            line['has_failed'] = {
+                'vague': f"The model was not able to generate a vague question. Model Response: {model_response}"
+            }
+        else:
+            line['question'] = ambig_question['question']
+            line['target'] = sql_interpretations
+            line['test_sub_category'] = qatch_templates[0]['test_category']
+            line['qatch_templates'] = qatch_templates
 
-            line['total_cost'] += total_cost
-            line['granular_costs']['test_generation'] = total_cost
-            processed_dataset.append(line)
-    return processed_dataset
+        line['total_cost'] += total_cost
+        line['granular_costs']['test_generation'] = total_cost
+        processed_lines.append(line)
+    return processed_lines
 
 
 def _generate_sql_templates(line: Line) -> list[list[dict[Literal['test_category', 'query', 'question'], str]]]:

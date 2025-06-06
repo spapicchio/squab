@@ -1,12 +1,21 @@
 import json
 import re
+from enum import Enum
+from typing import TypeVar
 
 from qatch.connectors import SqliteConnector
 from qatch.generate_dataset import OrchestratorGenerator
 from typing_extensions import Literal
 
 from squab.graph_states import Line
-from squab.nodes.generation_steps import GenerationSteps
+
+T = TypeVar('T')
+
+
+class GenerationSteps(Enum):
+    PI = 'pattern_identification'
+    RM = 'relational_metadata'
+    TG = 'test_generation'
 
 
 def utils_check_previous_step(dataset: list[Line], step: GenerationSteps) -> None:

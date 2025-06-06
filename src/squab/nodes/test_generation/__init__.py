@@ -1,1 +1,1 @@
-from squab.nodes.test_generation.node_generate_vague import node_generate_vague
+from squab.nodes.test_generation.node_generate_vague import process_question_vague

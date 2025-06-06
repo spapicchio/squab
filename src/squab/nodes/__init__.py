@@ -5,13 +5,15 @@ from langgraph.func import task
 
 from squab.graph_states import Line
 from squab.logger import get_logger
+from squab.nodes.node_process_dataset import node_process_dataset
 from squab.nodes.node_read_sqlite_db import node_read_db_sqlite
-from squab.nodes.pattern_identification import node_semantic_close_attributes
-from squab.nodes.relational_metadata import node_get_hypernym
-from squab.nodes.test_generation import node_generate_vague
+from squab.nodes.pattern_identification import process_semantic_close_attributes_line
+from squab.nodes.relational_metadata import process_hypernym_line
+from squab.nodes.test_generation import process_question_vague
+from squab.nodes.utils import GenerationSteps, T, utils_check_previous_step
 
 
-class Generators(Enum):
+class CategoryType(Enum):
     SCOPE = "scope"
     ATTACHMENT = "attachment"
     VAGUE = "vague"
@@ -20,13 +22,13 @@ class Generators(Enum):
     OUT_OF_SCOPE = "out_of_scope"
 
 
-GeneratorsCallable = {
-    Generators.SCOPE: [],
-    Generators.ATTACHMENT: [],
-    Generators.VAGUE: [node_semantic_close_attributes, node_get_hypernym, node_generate_vague],
-    Generators.COL_UNANS: [],
-    Generators.CALC_UNANS: [],
-    Generators.OUT_OF_SCOPE: [],
+category_handlers = {
+    CategoryType.SCOPE: [],
+    CategoryType.ATTACHMENT: [],
+    CategoryType.VAGUE: [process_semantic_close_attributes_line, process_hypernym_line, process_question_vague],
+    CategoryType.COL_UNANS: [],
+    CategoryType.CALC_UNANS: [],
+    CategoryType.OUT_OF_SCOPE: [],
 }
 
 
@@ -57,19 +59,31 @@ def node_generator(
     logger.info(f"Generator parameters: {generator_params}")
     logger.info(f"Dataset size before processing: {len(dataset)}")
     # Run the pattern identification step
-    dataset_pi = node_pi(dataset, **generator_params).result()
+    dataset_pi = node_process_dataset(dataset,
+                                      step=GenerationSteps.PI,
+                                      process_line_fn=node_pi,
+                                      **generator_params).result()
+
     logger.info(f"Dataset size after processing: {len(dataset_pi)}")
-    dataset_rm = node_rm(dataset_pi, **generator_params).result()
+    dataset_rm = node_process_dataset(dataset_pi,
+                                      step=GenerationSteps.RM,
+                                      process_line_fn=node_rm,
+                                      **generator_params).result()
+
     logger.info(f"Dataset size after relational metadata: {len(dataset_rm)}")
-    dataset_tg = node_tg(dataset_rm, **generator_params).result()
+    dataset_tg = node_process_dataset(dataset_rm,
+                                      step=GenerationSteps.TG,
+                                      process_line_fn=node_tg,
+                                      **generator_params).result()
+
     logger.info(f"Dataset size after test generation: {len(dataset_tg)}")
     logger.info(f"Finished processing dataset with: {node_pi.__name__}, {node_rm.__name__}, {node_tg.__name__}")
     return dataset_tg
 
 
 def process_dataset_with_generator(dataset: list[Line], generator_name: str, generator_params: dict):
-    generator = Generators(generator_name)
-    node_pi, node_rm, node_tg = GeneratorsCallable[generator]
+    generator = CategoryType(generator_name)
+    node_pi, node_rm, node_tg = category_handlers[generator]
     for line in dataset:
         line["task_type"] = generator_name
     logger = get_logger(generator_name)

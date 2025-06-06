@@ -1,1 +1,1 @@
-from squab.nodes.pattern_identification.node_semantic_close_attributes import node_semantic_close_attributes
+from squab.nodes.pattern_identification.node_semantic_close_attributes import process_semantic_close_attributes_line

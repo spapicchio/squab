@@ -1,61 +1,59 @@
 import copy
 
 import litellm
-from langgraph.func import task
 
 from squab.graph_states import Line
-from squab.nodes.generation_steps import GenerationSteps
 from squab.nodes.pattern_identification.utils import utils_get_top_k_index_similar_matrix, utils_combine_clusters
-from squab.nodes.utils import utils_check_previous_step, utils_get_columns_no_pk_fk
+from squab.nodes.utils import utils_get_columns_no_pk_fk
 
 
-@task
-def node_semantic_close_attributes(
-        dataset: list[Line],
+def process_semantic_close_attributes_line(
+        line: Line,
         encoder_name: str,
         threshold_similar_values: float,
         *args,
         **kwargs
-) -> list[Line]:
-    # check if the previous step has been executed
-    utils_check_previous_step(dataset, GenerationSteps.PI)
-    processed_dataset = []
-    for line in dataset:
-        if 'has_failed' in line:
-            processed_dataset.append(line)
-            continue
-        line = copy.deepcopy(line)
-        columns_no_pk_fk = utils_get_columns_no_pk_fk(line)
-        # you need at least two columns to find a pattern
-        if len(columns_no_pk_fk) < 2:
-            line['has_failed'] = {
-                'pi_semantic_close_attributes': "The table has less than two columns excluding primary and foreign keys,"
-                                                " cannot find a pattern."
-            }
-            line['total_cost'] = 0.0
-            line['granular_costs']['pattern_identification'] = 0.0
-            processed_dataset.append(line)
-        else:
-            lines = _process_line(line, columns_no_pk_fk, encoder_name, threshold_similar_values)
-            processed_dataset.extend(lines)
-    return processed_dataset
+) -> Line | list[Line]:
+    """Process a single line for semantic close attributes identification."""
+    columns_no_pk_fk = utils_get_columns_no_pk_fk(line)
 
+    # You need at least two columns to find a pattern
+    if len(columns_no_pk_fk) < 2:
+        line['has_failed'] = {
+            'pi_semantic_close_attributes': "The table has less than two columns excluding primary and foreign keys,"
+                                            " cannot find a pattern."
+        }
+        line['total_cost'] = 0.0
+        line['granular_costs']['pattern_identification'] = 0.0
+        return line
 
-def _process_line(line: Line, columns_no_pk_fk, encoder_name, threshold_similar_values) -> list[Line]:
+    # Get similar columns
     similar_columns, total_cost = _get_similar_values(
         columns_no_pk_fk,
         threshold_similar_values=threshold_similar_values,
         encoder_name=encoder_name
     )
+
+    # Process each set of similar columns
     processed_lines = []
     for column_pairs in similar_columns:
         if len(column_pairs) > 1:
             processed_line = copy.deepcopy(line)
-            # update the costs
-            processed_line['granular_costs']['pattern_identification'] = total_cost
-            processed_line['total_cost'] += total_cost
+            # Update the costs
+            processed_line['granular_costs']['pattern_identification'] = total_cost / len(similar_columns)
+            processed_line['total_cost'] += total_cost / len(similar_columns)
             processed_line['pattern_identification'] = {"similar_columns": column_pairs}
             processed_lines.append(processed_line)
+
+    # If no similar columns were found, return the original line with a failure marker
+    if not processed_lines:
+        line['has_failed'] = {
+            'pi_semantic_close_attributes': "No similar columns found."
+        }
+        line['total_cost'] += total_cost
+        line['granular_costs']['pattern_identification'] = total_cost
+        return line
+
     return processed_lines
 
 
