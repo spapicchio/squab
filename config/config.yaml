@@ -4,4 +4,5 @@ only_these_tbl: null
 
 generators:
   vague:
-      encoder_name: 'test'
+    encoder_name: 'text-embedding-3-large'  # used to embed columns in PatternIdentification
+    threshold_similar_values: 0.30  # threshold that defines the minimum cosine-distance between the cols to be considered similar
