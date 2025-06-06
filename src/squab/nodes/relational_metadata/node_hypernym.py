@@ -45,27 +45,29 @@ def node_get_hypernym(
     user_template = hypernym_user_template or HYPERNYM_TEMPLATE
 
     for line in dataset:
-        lines = copy.deepcopy(line)
-        if 'has_failed' not in lines:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user",
-                 "content": Template(user_template).render(tbl_schema=line['db_schema_table_examples'],
-                                                           cols=line['pattern_identification'])}
+        if 'has_failed' in line:
+            processed_dataset.append(line)
+            continue
+        line = copy.deepcopy(line)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",
+             "content": Template(user_template).render(tbl_schema=line['db_schema_table_examples'],
+                                                       cols=line['pattern_identification'])}
 
-            ]
-            response, total_cost = llm_call(messages, litellm_params_hypernym).result()
-            model_response = response["choices"][0]["message"]["content"]
-            hypernym = utils_get_last_json_from_text(model_response)
-            if not hypernym:
-                lines['has_failed'] = {
-                    'rm_hypernym': f"The table has no hypernym, cannot find a pattern. Model Response: {model_response}"
-                }
-            else:
-                lines['relational_metadata'] = hypernym
+        ]
+        response, total_cost = llm_call(messages, litellm_params_hypernym).result()
+        model_response = response["choices"][0]["message"]["content"]
+        hypernym = utils_get_last_json_from_text(model_response)
+        if not hypernym:
+            line['has_failed'] = {
+                'rm_hypernym': f"The table has no hypernym, cannot find a pattern. Model Response: {model_response}"
+            }
+        else:
+            line['relational_metadata'] = hypernym
 
-            lines['granular_costs']['relational_metadata'] = total_cost
-            lines['total_cost'] += total_cost
-        lines = lines if isinstance(lines, list) else [lines]
-        processed_dataset.extend(lines)
+        line['granular_costs']['relational_metadata'] = total_cost
+        line['total_cost'] += total_cost
+        processed_dataset.append(line)
+
     return processed_dataset

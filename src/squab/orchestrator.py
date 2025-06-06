@@ -56,6 +56,7 @@ def main(cfg: DictConfig):
     input_ = WorkerInput(**cfg)
     dataset = orchestrator.invoke(input_)
     print(dataset)
+    print(len(dataset))
 
 
 if __name__ == "__main__":

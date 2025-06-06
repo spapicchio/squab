@@ -21,20 +21,23 @@ def node_semantic_close_attributes(
     utils_check_previous_step(dataset, GenerationSteps.PI)
     processed_dataset = []
     for line in dataset:
-        lines = copy.deepcopy(line)
-        if 'has_failed' not in lines:
-            columns_no_pk_fk = utils_get_columns_no_pk_fk(lines)
-            # you need at least two columns to find a pattern
-            if len(columns_no_pk_fk) < 2:
-                lines['has_failed'] = {
-                    'pi_semantic_close_attributes': "The table has less than two columns excluding primary and foreign keys,"
-                                                    " cannot find a pattern."
-                }
-            else:
-                lines = _process_line(lines, columns_no_pk_fk, encoder_name, threshold_similar_values)
-
-        lines = lines if isinstance(lines, list) else [lines]
-        processed_dataset.extend(lines)
+        if 'has_failed' in line:
+            processed_dataset.append(line)
+            continue
+        line = copy.deepcopy(line)
+        columns_no_pk_fk = utils_get_columns_no_pk_fk(line)
+        # you need at least two columns to find a pattern
+        if len(columns_no_pk_fk) < 2:
+            line['has_failed'] = {
+                'pi_semantic_close_attributes': "The table has less than two columns excluding primary and foreign keys,"
+                                                " cannot find a pattern."
+            }
+            line['total_cost'] = 0.0
+            line['granular_costs']['pattern_identification'] = 0.0
+            processed_dataset.append(line)
+        else:
+            lines = _process_line(line, columns_no_pk_fk, encoder_name, threshold_similar_values)
+            processed_dataset.extend(lines)
     return processed_dataset
 
 
