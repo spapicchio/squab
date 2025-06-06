@@ -18,3 +18,4 @@ class Line(ConnectorTable):
     question: str | None
     target: Any
     total_cost: float
+    granular_costs: dict

@@ -3,7 +3,7 @@ import re
 from langgraph.func import task
 from qatch.connectors import SqliteConnector, ConnectorTable
 
-from src.squab.graph_states import Line
+from squab.graph_states import Line
 
 
 @task
@@ -33,6 +33,8 @@ def _load_qatch(db_path: str, db_id: str) -> list[Line]:
 
     tables = [val.model_dump() for val in tbl_name2table.values()]
     for val in tables:
+        val['total_cost'] = 0.0
+        val['granular_costs'] = {'db_reading': 0.0}
         val['db_path'] = db_path
         val["db_id"] = val.pop("db_name", None)
         val["db_schema_table"] = connector.run_query(

@@ -1,7 +1,7 @@
 import hydra
 from omegaconf import DictConfig
 
-from src.squab.orchestrator import WorkerInput, orchestrator
+from squab.orchestrator import WorkerInput, orchestrator
 
 
 @hydra.main(version_base=None, config_path="config", config_name="config")
