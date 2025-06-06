@@ -2,6 +2,9 @@
 name = "squab"
 version = "0.1.0"
 description = "Add your description here"
+authors = [
+    { name = "Simone Papicchio", email = "simone.papicchio@polito.it" }
+]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,11 +12,16 @@ dependencies = [
     "langchain-community>=0.3.16",
     "langchain-openai>=0.3.2",
     "langchain-together>=0.3.0",
-    "pandas>=2.2.3",
-    "pydantic>=2.10.6",
     "pytest[dev]>=8.3.4",
     "python-dotenv>=1.0.1",
     "qatch>=1.0.28",
     "scikit-learn>=1.6.1",
     "sqlalchemy>=2.0.37",
 ]
+
+[project.scripts]
+squab = "squab:master"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
