@@ -8,6 +8,7 @@ from squab.logger import get_logger
 from squab.nodes.node_read_sqlite_db import node_read_db_sqlite
 from squab.nodes.pattern_identification import node_semantic_close_attributes
 from squab.nodes.relational_metadata import node_get_hypernym
+from squab.nodes.test_generation import node_generate_vague
 
 
 class Generators(Enum):
@@ -22,7 +23,7 @@ class Generators(Enum):
 GeneratorsCallable = {
     Generators.SCOPE: [],
     Generators.ATTACHMENT: [],
-    Generators.VAGUE: [node_semantic_close_attributes, node_get_hypernym, node_semantic_close_attributes],
+    Generators.VAGUE: [node_semantic_close_attributes, node_get_hypernym, node_generate_vague],
     Generators.COL_UNANS: [],
     Generators.CALC_UNANS: [],
     Generators.OUT_OF_SCOPE: [],
@@ -61,7 +62,7 @@ def node_generator(
     dataset_rm = node_rm(dataset_pi, **generator_params).result()
     logger.info(f"Dataset size after relational metadata: {len(dataset_rm)}")
     dataset_tg = node_tg(dataset_rm, **generator_params).result()
-    logger.info(f"Dataset size after table generation: {len(dataset_tg)}")
+    logger.info(f"Dataset size after test generation: {len(dataset_tg)}")
     logger.info(f"Finished processing dataset with: {node_pi.__name__}, {node_rm.__name__}, {node_tg.__name__}")
     return dataset_tg
 

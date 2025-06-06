@@ -12,3 +12,9 @@ generators:
       max_tokens: 100
     hypernym_user_template: null
     hypernym_system_template: null
+    litellm_params_vague:
+      model: 'gpt-4o-mini'
+      temperature: 0.0
+      max_tokens: 100
+    vague_user_template: null
+    vague_system_template: null
