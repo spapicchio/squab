@@ -1,1 +1,2 @@
 from squab.nodes.test_generation.node_generate_vague import create_test_templates
+from squab.nodes.test_generation.node_templates_vague import create_templates_vague

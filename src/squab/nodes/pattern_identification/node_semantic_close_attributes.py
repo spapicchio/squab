@@ -8,7 +8,7 @@ from squab.nodes.pattern_identification.utils import utils_get_top_k_index_simil
 from squab.nodes.utils import utils_get_columns_no_pk_fk, GenerationSteps
 
 
-@dataset_processor(GenerationSteps.PI)
+@dataset_processor()
 def process_semantic_close_attributes_line(
         line: Line,
         encoder_name: str,
@@ -22,11 +22,11 @@ def process_semantic_close_attributes_line(
     # You need at least two columns to find a pattern
     if len(columns_no_pk_fk) < 2:
         line['has_failed'] = {
-            'pi_semantic_close_attributes': "The table has less than two columns excluding primary and foreign keys,"
-                                            " cannot find a pattern."
+            GenerationSteps.PI.value: "The table has less than two columns excluding primary and foreign keys,"
+                                      " cannot find a pattern."
         }
-        line['total_cost'] = 0.0
-        line['granular_costs']['pattern_identification'] = 0.0
+        line['total_cost'] += 0.0
+        line['granular_costs'][GenerationSteps.PI.value] = 0.0
         return line
 
     # Get similar columns
@@ -42,18 +42,18 @@ def process_semantic_close_attributes_line(
         if len(column_pairs) > 1:
             processed_line = copy.deepcopy(line)
             # Update the costs
-            processed_line['granular_costs']['pattern_identification'] = total_cost / len(similar_columns)
+            processed_line['granular_costs'][GenerationSteps.PI.value] = total_cost / len(similar_columns)
             processed_line['total_cost'] += total_cost / len(similar_columns)
-            processed_line['pattern_identification'] = {"similar_columns": column_pairs}
+            processed_line[GenerationSteps.PI.value] = {"similar_columns": column_pairs}
             processed_lines.append(processed_line)
 
     # If no similar columns were found, return the original line with a failure marker
     if not processed_lines:
         line['has_failed'] = {
-            'pi_semantic_close_attributes': "No similar columns found."
+            GenerationSteps.PI.value: "No similar columns found."
         }
         line['total_cost'] += total_cost
-        line['granular_costs']['pattern_identification'] = total_cost
+        line['granular_costs'][GenerationSteps.PI.value] = total_cost
         return line
 
     return processed_lines

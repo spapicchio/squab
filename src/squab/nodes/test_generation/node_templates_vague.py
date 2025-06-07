@@ -3,12 +3,13 @@ from typing import Literal
 
 from squab.graph_states import Line
 from squab.nodes.test_generation.utils_decorator_llm_node import test_generation_based_templates
-from squab.nodes.utils import utils_run_qatch
+from squab.nodes.utils import utils_run_qatch, GenerationSteps
 
 
 @test_generation_based_templates()
-def create_test_templates(line: Line, *args, **kwargs) -> list[
-    list[dict[Literal['test_category', 'query', 'question'], str]]]:
+def create_templates_vague(
+        line: Line, *args, **kwargs
+) -> list[list[dict[Literal['test_category', 'query', 'question'], str]]]:
     """
     Generates SQL templates and corresponding questions by replacing columns in the query
     with similar columns, taking into account specific query clauses like SELECT and ORDER BY.
@@ -21,7 +22,7 @@ def create_test_templates(line: Line, *args, **kwargs) -> list[
         list[list[dict]]: Nested list where each inner list contains variations of one query,
                           with replaced columns and the associated question and test category.
     """
-    similar_cols = line["pattern_identification"]["similar_columns"]
+    similar_cols = line[GenerationSteps.PI.value]["similar_columns"]
     random.seed(42)
     col_in_query = random.choice(similar_cols)
     list_queries_with_selected_col = utils_run_qatch(

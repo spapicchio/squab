@@ -5,6 +5,7 @@ from typing import TypeVar
 
 from qatch.connectors import SqliteConnector
 from qatch.generate_dataset import OrchestratorGenerator
+from rapidfuzz.distance import Levenshtein
 from typing_extensions import Literal
 
 from squab.graph_states import Line
@@ -16,27 +17,6 @@ class GenerationSteps(Enum):
     PI = 'pattern_identification'
     RM = 'relational_metadata'
     TG = 'test_generation'
-
-
-def utils_check_previous_step(dataset: list[Line], step: GenerationSteps) -> None:
-    """
-    Check if the previous step has been executed by looking for a specific key in the dataset.
-    """
-    if step == GenerationSteps.PI:
-        keys = ["db_id", "db_path", "db_schema", "db_schema_table", "db_schema_table_examples", "tbl_name"]
-        previous_step = 'reading_table'
-    elif step == GenerationSteps.RM:
-        keys = ["pattern_identification"]
-        previous_step = GenerationSteps.PI.value
-    elif step == GenerationSteps.TG:
-        keys = ["relational_metadata"]
-        previous_step = GenerationSteps.RM.value
-    else:
-        raise ValueError(f"Unknown step: {step}")
-
-    for line in dataset:
-        if not all(key in line for key in keys):
-            raise ValueError(f"Previous step {previous_step} has not been executed. Missing keys: {keys}")
 
 
 def utils_get_columns_no_pk_fk(line: Line,
@@ -178,3 +158,25 @@ def utils_run_qatch(
         .to_dict(orient="records")
     )
     return list_tests
+
+def utils_levenshtein_name_in(list_values: list, name: str) -> str:
+    """
+    Get the name with the most overlapping characters from a list of names.
+
+    Args:
+        list_values (list): List of names to compare.
+        name (str): Name to compare against.
+
+    Returns:
+        str: The name in list_values most similar to name.
+    """
+    name = name.lower().strip()
+    max_ratio = -1
+    most_overlapping_name = ""
+    for val in list_values:
+        ratio = Levenshtein.normalized_similarity(val.lower().strip(), name)
+        if ratio > max_ratio:
+            max_ratio = ratio
+            most_overlapping_name = val
+
+    return most_overlapping_name

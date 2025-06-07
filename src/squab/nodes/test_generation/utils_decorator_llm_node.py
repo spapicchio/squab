@@ -2,9 +2,9 @@ import functools
 from typing import Callable, TypeVar, Any
 
 from squab.graph_states import Line
+from squab.nodes.utils import GenerationSteps
 from squab.nodes.utils_decorator_process_dataset import dataset_processor
 from squab.nodes.utils_node_llm_call import llm_node_update_line
-from squab.nodes.utils import GenerationSteps
 
 _T = TypeVar("_T")
 _TCo = TypeVar("_TCo", covariant=True)
@@ -17,7 +17,7 @@ def test_generation_based_templates():
 
     def decorator(create_templates_from_line: Callable[[Line, Any], _T | list[_T]]):
         @functools.wraps(create_templates_from_line)
-        @dataset_processor(GenerationSteps.RM)
+        @dataset_processor()
         def wrapper(line: Line,
                     tg_system: str | None,
                     tg_user: str,
@@ -43,6 +43,12 @@ def test_generation_based_templates():
                     step=GenerationSteps.TG
                 ).result()
 
+                if 'question' not in line:
+                    line['has_failed'] = {
+                        GenerationSteps.TG.value: f"Model Response: {line['question']}"
+                    }
+                else:
+                    line['question'] = line['question']['question']
                 line['target'] = sql_interpretations
                 line['test_sub_category'] = templates[0]['test_category']
                 line['templates'] = templates

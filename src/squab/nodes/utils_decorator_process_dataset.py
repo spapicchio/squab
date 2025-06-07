@@ -5,13 +5,12 @@ from typing import Callable, TypeVar, Any
 from langgraph.func import task
 
 from squab.graph_states import Line
-from squab.nodes.utils import GenerationSteps, utils_check_previous_step
 
 _T = TypeVar("_T")
 _TCo = TypeVar("_TCo", covariant=True)
 
 
-def dataset_processor(step: GenerationSteps):
+def dataset_processor():
     """
     Decorator to process a dataset using common operations like:
     - Checking if the previous step was executed
@@ -29,7 +28,6 @@ def dataset_processor(step: GenerationSteps):
                 **kwargs: Any
         ) -> list[_T]:
             # Check if the previous step has been executed
-            utils_check_previous_step(dataset, step)
             processed_dataset = []
 
             for line in dataset:
