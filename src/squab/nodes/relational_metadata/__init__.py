@@ -1,1 +1,2 @@
+from squab.nodes.relational_metadata.node_entity_component import find_entity_component_from
 from squab.nodes.relational_metadata.node_hypernym import process_hypernym_line

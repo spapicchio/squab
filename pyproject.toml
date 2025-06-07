@@ -18,6 +18,7 @@ dependencies = [
     "pytest[dev]>=8.3.4",
     "python-dotenv>=1.0.1",
     "qatch>=1.0.28",
+    "rapidfuzz>=3.13.0",
     "scikit-learn>=1.6.1",
     "sqlalchemy>=2.0.37",
 ]
