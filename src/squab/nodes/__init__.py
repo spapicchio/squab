@@ -8,7 +8,7 @@ from squab.logger import get_logger
 from squab.nodes.node_read_sqlite_db import node_read_db_sqlite
 from squab.nodes.pattern_identification import process_semantic_close_attributes_line
 from squab.nodes.relational_metadata import process_hypernym_line
-from squab.nodes.test_generation import process_question_vague
+from squab.nodes.test_generation import create_test_templates
 from squab.nodes.utils import GenerationSteps, T, utils_check_previous_step
 
 
@@ -24,7 +24,7 @@ class CategoryType(Enum):
 category_handlers = {
     CategoryType.SCOPE: [],
     CategoryType.ATTACHMENT: [],
-    CategoryType.VAGUE: [process_semantic_close_attributes_line, process_hypernym_line, process_question_vague],
+    CategoryType.VAGUE: [process_semantic_close_attributes_line, process_hypernym_line, create_test_templates],
     CategoryType.COL_UNANS: [],
     CategoryType.CALC_UNANS: [],
     CategoryType.OUT_OF_SCOPE: [],
