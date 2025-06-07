@@ -1,3 +1,4 @@
+import functools
 from typing import Callable, TypeVar, Any
 
 from squab.graph_states import Line
@@ -15,6 +16,7 @@ def test_generation_based_templates():
     """
 
     def decorator(create_templates_from_line: Callable[[Line, Any], _T | list[_T]]):
+        @functools.wraps(create_templates_from_line)
         @dataset_processor(GenerationSteps.RM)
         def wrapper(line: Line,
                     tg_system: str | None,

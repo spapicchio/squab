@@ -1,4 +1,5 @@
 import copy
+import functools
 from typing import Callable, TypeVar, Any
 
 from langgraph.func import task
@@ -20,6 +21,7 @@ def dataset_processor(step: GenerationSteps):
     """
 
     def decorator(process_line_fn: Callable[[Line, Any], _T | list[_T]]):
+        @functools.wraps(process_line_fn)
         @task
         def wrapper(
                 dataset: list[Line],

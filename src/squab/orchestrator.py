@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from squab.graph_states import Line
 from squab.logger import get_logger
-from squab.nodes import node_read_db_sqlite, CategoryType, process_dataset_with_generator
+from squab.nodes import node_read_db_sqlite, process_dataset_with_generator, CategoryType
 
 
 # https://langchain-ai.github.io/langgraph/concepts/functional_api/#execution
@@ -24,19 +24,23 @@ def orchestrator(
 ) -> list[Line]:
     # preprocess the data
     worker_input = worker_input.model_dump()
+
     logger_orchestrator = get_logger('orchestrator')
     logger_orchestrator.info(f"Starting orchestrator for `db_path={worker_input['db_path']}`")
     processed_data = node_read_db_sqlite(**worker_input).result()
     logger_orchestrator.info(f"Finished reading `db_path={worker_input['db_path']}`")
+
     # get the generators function
     logger_orchestrator.info(f"Using generators: {worker_input['generators']}")
     generators = list(worker_input["generators"].keys()) or [name.value for name in CategoryType]
     datasets = [process_dataset_with_generator(processed_data, gen_name, worker_input['generators'][gen_name])
                 for gen_name in generators]
+
     # wait for all generators to finish and aggregate the results
     aggregated_dataset = node_aggregate_results(
         [dataset.result() for dataset in datasets]
     )
+
     logger_orchestrator.info(f"Finished processing `db_path={worker_input['db_path']}`")
     return aggregated_dataset.result()
 
