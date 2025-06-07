@@ -2,7 +2,7 @@ import random
 from typing import Literal
 
 from squab.graph_states import Line
-from squab.nodes.test_generation.decorator_llm_node import test_generation_based_templates
+from squab.nodes.test_generation.utils_decorator_llm_node import test_generation_based_templates
 from squab.nodes.utils import utils_run_qatch
 
 

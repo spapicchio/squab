@@ -1,2 +1,2 @@
-from squab.nodes.node_generators_orchestrator import process_dataset_with_generator, CategoryType
+from squab.nodes.nodes_executor import process_dataset_with_generator, CategoryType
 from squab.nodes.node_read_sqlite_db import node_read_db_sqlite

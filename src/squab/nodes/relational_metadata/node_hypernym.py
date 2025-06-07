@@ -1,6 +1,6 @@
 from squab.graph_states import Line
-from squab.nodes.decorator_process_dataset import dataset_processor
-from squab.nodes.node_llm_call import llm_node_update_line
+from squab.nodes.utils_decorator_process_dataset import dataset_processor
+from squab.nodes.utils_node_llm_call import llm_node_update_line
 from squab.nodes.utils import GenerationSteps
 
 
