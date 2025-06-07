@@ -1,20 +1,7 @@
+defaults:
+  - generators:
+    - vague
+
 db_path: 'fake_db_with_joins.sqlite'
 db_id: null
 only_these_tbl: null
-
-generators:
-  vague:
-    encoder_name: 'text-embedding-3-large'  # used to embed columns in PatternIdentification
-    threshold_similar_values: 0.30  # threshold that defines the minimum cosine-distance between the cols to be considered similar
-    litellm_params_hypernym:
-      model: 'gpt-4o-mini'
-      temperature: 0.0
-      max_tokens: 100
-    hypernym_user_template: null
-    hypernym_system_template: null
-    litellm_params_vague:
-      model: 'gpt-4o-mini'
-      temperature: 0.0
-      max_tokens: 100
-    vague_user_template: null
-    vague_system_template: null

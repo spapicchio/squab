@@ -1,0 +1,104 @@
+vague:
+  encoder_name: 'text-embedding-3-large'  # used to embed columns in PatternIdentification
+  threshold_similar_values: 0.30  # threshold that defines the minimum cosine-distance between the cols to be considered similar
+
+  litellm_params_hypernym:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_tokens: 100
+
+  hypernym_system_template: >-
+    Given a specific table schema and a designated set of columns, your task is to generate a suitable and appropriate label for that particular set.
+    A set is defined as a collection of column names that share a semantic relationship, which may include examples such as "First Name" and "Last Name."
+    The label you create should be a single term that effectively encompasses all the columns in that set, such as "Personal Information" or "Name."
+    It is crucial that the label must be unique within its set and the table schema and also relevant to the overall table schema in question.
+    As output, return a JSON enclosed in ```json```. Instead, if there is no possible labeling solution, return an empty JSON object ```json{}```.
+    
+    ## Output
+    
+    ```json
+    {
+      "label": "the label that represents the set of columns"
+    }
+  hypernym_user_template: |-
+    ## Table Schema
+    {{ tbl_schema }}
+    ## Semantic related columns
+    {{ cols }}
+
+
+  tg_litellm_params:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_tokens: 100
+
+  tg_system: |-
+    You are a helpful assistant who writes a natural language (NL) question. 
+    You are provided with a definition of ambiguity, the SQL queries that answer the question following the ambiguity rules, and a database containing the answers. You may also receive metadata helping you in generating the question. Your task is to write the NL question following these guidelines:
+
+    - All unformatted table and column names must be replaced with plain words, preferably synonyms.
+    - Make the question as short as possible, but do not miss any part of the question like order-by (e.g., remove unnecessary words or paraphrase). Yet, you must check the relevant tables to ensure that the question and its interpretations express the same request as the queries and would yield the same answer. Example: You can modify "fitness training program" into "training program" and omit the unnecessary word “fitness” only if "training program"  cannot be confused with other columns in different tables.
+    - You must maintain ambiguity when writing the question and reading each interpretation.
+    - If the projected column name can be inferred, remove it from the final output
+    
+    # Ambiguity Definition
+    Colum Ambiguity arises when a natural language query is insufficiently specific to  identify
+    a particular column within a table. This ambiguity often occurs when multiple columns
+    share similar meaning and it is possible to associate these columns to a common label.
+    As example, consider a table with two columns: `Name` and `Surname`.
+    A query like "What are the information of Simone?" is ambiguous because
+    it's uncertain whether the query refers to the Name or the Surname or to both columns.
+    Given the queries, the semantic similar columns and the label to use in the generation,
+    generate an ambiguous question that uses the label rather than the columns with the same intent of each
+    query. Note that you can use also synonyms of the label as long as they are not present in the table.
+
+    # Output Format
+    Provide the answer in JSON format as follows
+    ```json
+    {
+        "question": "the generated question"
+    }
+    ```
+  tg_user: |-
+    ## queries
+    {{ target }}
+    
+    ## Metadata
+    {{ metadata }}
+    
+    ## Database
+    {{ database }}
+
+  user_template_params_from_line:
+    database: db_schema_table_examples
+    metadata: relational_metadata
+
+  tg_few_shots:
+    - target:
+        - "Select Reviews.Hikes, Reviews.customer_review From Reviews"
+        - "Select Reviews.Hikes, Reviews.difficulty_level From Reviews"
+        - "Select Reviews.Hikes, Reviews.customer_review, difficulty_level From Reviews"
+      metadata: '{"label": "ratings", "columns": ["customer_review", "difficulty_level"]}'
+      database: "CREATE TABLE Reviews (\n   Hikes TEXT,\n   customer_review TEXT,\n   difficulty_level TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "What hikes do we have and what are their ratings?"
+        }
+        ```
+
+    - target:
+        - "SELECT average_years_of_life\r\nFROM LifeExpectancies\r\nORDER BY region_id\r\nLIMIT 1;"
+        - "SELECT gender_specific_life_expectancy\r\nFROM LifeExpectancies\r\nORDER BY region_id\r\nLIMIT 1;"
+        - "SELECT average_years_of_life, gender_specific_life_expectancy\r\nFROM LifeExpectancies\r\nORDER BY region_id\r\nLIMIT 1;"
+      metadata: '{"label": "life expectancy", "columns": ["average_years_of_life", "gender_specific_life_expectancy"]}'
+      database: "CREATE TABLE LifeExpectancies (\nregion_id TEXT,\n  average_years_of_life TEXT,\n gender_specific_life_expectancy TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "What is the life expectancy of the region with the lowest ID?"
+        }
+        ```
+
+
+
