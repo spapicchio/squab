@@ -91,7 +91,7 @@ def utils_get_last_json_from_text(text: str) -> dict:
         return {}
 
 
-def is_openai_format(input) -> bool:
+def is_openai_format(input_) -> bool:
     """Checks if the input is in OpenAI chat-like format:
 
     ```python
@@ -102,16 +102,16 @@ def is_openai_format(input) -> bool:
     ```
 
     Args:
-        input: The input to check.
+        input_: The input to check.
 
     Returns:
         A boolean indicating if the input is in OpenAI chat-like format.
     """
-    if not isinstance(input, list):
+    if not isinstance(input_, list):
         return False
     return all(
         isinstance(x, dict) and "role" in x.keys() and "content" in x.keys()
-        for x in input
+        for x in input_
     )
 
 
