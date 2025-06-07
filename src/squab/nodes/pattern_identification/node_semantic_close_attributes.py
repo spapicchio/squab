@@ -3,10 +3,12 @@ import copy
 import litellm
 
 from squab.graph_states import Line
+from squab.nodes.decorator_process_dataset import dataset_processor
 from squab.nodes.pattern_identification.utils import utils_get_top_k_index_similar_matrix, utils_combine_clusters
-from squab.nodes.utils import utils_get_columns_no_pk_fk
+from squab.nodes.utils import utils_get_columns_no_pk_fk, GenerationSteps
 
 
+@dataset_processor(GenerationSteps.PI)
 def process_semantic_close_attributes_line(
         line: Line,
         encoder_name: str,
