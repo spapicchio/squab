@@ -1,0 +1,120 @@
+scope:
+  litellm_params_entity_component:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_tokens: 100
+  tg_litellm_params:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_tokens: 100
+
+  entity_component_system_template: |-
+    You are a helpful AI assistant. Identify the semantic relationship between two provided names and determine if one is an Entity and the other is a Component. Note that a component can also be an element present in the entities.
+    These names are column attributes of a table, and they are related to each other in a many-to-many relationship, where one name represents an Entity and the other represents a Component. 
+    For your task you can also use the provided database schema with some example values.
+    
+    
+    # Steps
+    1. Analyze the first name to determine if it can be categorized as an Entity or a Component.
+    2. Analyze the second name to determine if it can be categorized as a Component or an Entity
+    3. Evaluate if the selected component is a meaningful part or attribute of the selected entity.
+    
+    # Output Format
+    Return the answer as JSON enclosed in ```json ``` with two keys: entity and component.
+    ```json
+    {
+      "entity": "the name that represents the entity",
+      "component": "the name that represents the component.
+    }
+    ```
+  entity_component_user_template: |-
+    # Database Schema
+    {{ database }}
+    
+    # Many-To-Many Relationship
+    '{{ pattern_identification }}'
+  entity_component_few_shots:
+    - pattern_identification: 'Brand name, Store name'
+      database: "CREATE TABLE Store (\n   StoreID INTEGER,\n    StoreName TEXT,\n    Location TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "entity": "Store name",
+            "component": "Brand name"
+        }
+        ```
+    - pattern_identification: 'Engine, Car'
+      database: "CREATE TABLE Car (\n   CarID INTEGER,\n    CarName TEXT,\n    EngineType TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "entity": "Car",
+            "component": "Engine"
+        }
+        ```
+
+  tg_system: |-
+    You are a helpful assistant who writes a natural language (NL) question. 
+    You are provided with a definition of ambiguity, the SQL queries that answer the question following the ambiguity rules, and a database containing the answers. You may also receive metadata helping you in generating the question. Your task is to write the NL question following these guidelines:
+
+    - All unformatted table and column names must be replaced with plain words, preferably synonyms.
+    - Make the question as short as possible, but do not miss any part of the question like order-by (e.g., remove unnecessary words or paraphrase). Yet, you must check the relevant tables to ensure that the question and its interpretations express the same request as the queries and would yield the same answer. Example: You can modify "fitness training program" into "training program" and omit the unnecessary word “fitness” only if "training program"  cannot be confused with other columns in different tables.
+    - You must maintain ambiguity when writing the question and reading each interpretation.
+    - If the projected column name can be inferred, remove it from the final output
+    
+    # Ambiguity Definition
+    Scope ambiguity occurs when it is unclear how a modifier or phrase is attached to the rest of the sentence.
+    The ambiguity rise when there is a many-to-many relationship between two columns that have a 'Entity' - 'Component' semantic relation.
+    Therefore, it is unclear whether the question is asking for all the component present in all the entities (collective interpretation) or for each entity separately (distributive interpretation).
+    Consider the NL question 'What activities does each gym offer?' over a table with a many-to-many relationship between Gym (entity) and Activities (component).
+    Here, there are two interpretations of the question: in the collective interpretation, the quantifier is interpreted widely (i.e., 'each gym' refers to all gyms in the database).
+    Instead, in the distributive interpretation, the quantifier is interpreted narrowly (i.e., 'each gym' is considered separately)
+
+    # Output Format
+    Provide the answer in JSON format as follows
+    ```json
+    {
+        "question": "the generated question"
+    }
+    ```
+  tg_user: |-
+    ## queries
+    {{ target }}
+    
+    ## Metadata
+    {{ metadata }}
+    
+    ## Database
+    {{ database }}
+
+  user_template_params_from_line:
+    database: db_schema_table_examples
+    metadata: relational_metadata
+
+  tg_few_shots:
+    - target:
+        - "SELECT `Genre` FROM `Movies` GROUP BY `Genre` HAVING COUNT(DISTINCT `Budget`) = (SELECT COUNT(DISTINCT `Budget`) FROM `Movies`)"
+        - "SELECT DISTINCT `Genre`, `Budget` FROM `Movies`"
+      metadata: '{"entity": "Movies", "component": "Genre"}'
+      database: "CREATE TABLE GymClasses (\n   GymID INTEGER,\n    ClassID INTEGER,\n    ClassName TEXT,\n    GymName TEXT,\n    Location TEXT,\n    MembershipType TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "List movie genres associated with the budgets of each movie."
+        } 
+        ```
+    - target:
+        - "SELECT ClassName FROM GymClasses GROUP BY ClassID, ClassName HAVING COUNT(DISTINCT GymID) = (SELECT COUNT(DISTINCT GymID) FROM GymClasses);"
+        - "SELECT DISTINCT GymName, ClassName FROM GymClasses"
+      metadata: '{"entity": "Gym", "component": "GymClass"}'
+      database: "CREATE TABLE Movies (\n   Genre TEXT,\n    Budget INTEGER,\n    ReleaseYear INTEGER,\n    Director TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "What activities does each gym offer?"
+        } 
+        ```
+
+
+
+

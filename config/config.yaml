@@ -1,6 +1,7 @@
 defaults:
   - generators:
-    - vague
+#    - vague
+    - scope
 
 db_path: 'fake_db_with_joins.sqlite'
 db_id: null
