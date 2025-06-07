@@ -16,7 +16,7 @@ class Line(ConnectorTable):
     pattern_identification: Any  # PI
     relational_metadata: Any  # RM
     question: str | None
-    qatch_templates: list[dict] | None
+    templates: list[dict] | None
     test_sub_category: str | None   # extracted from QATCH
     target: Any
     total_cost: float
