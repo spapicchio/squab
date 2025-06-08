@@ -23,7 +23,7 @@ def create_templates_vague(
                           with replaced columns and the associated question and test category.
     """
     similar_cols = line[GenerationSteps.PI.value]["similar_columns"]
-    random.seed(42)
+    random.seed(kwargs.get("seed", 42))
     col_in_query = random.choice(similar_cols)
     list_queries_with_selected_col = utils_run_qatch(
         db_path=line['db_path'],

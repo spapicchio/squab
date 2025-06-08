@@ -7,7 +7,8 @@ from squab.graph_states import Line
 from squab.logger import get_logger
 from squab.nodes.pattern_identification import (
     process_semantic_close_attributes_line,
-    get_many_to_many_from_line
+    get_many_to_many_from_line,
+    get_overlapping_cols
 )
 from squab.nodes.relational_metadata import (
     process_hypernym_line,
@@ -15,7 +16,8 @@ from squab.nodes.relational_metadata import (
 )
 from squab.nodes.test_generation import (
     create_templates_vague,
-    create_templates_scope
+    create_templates_scope,
+    create_templates_attach
 )
 
 
@@ -29,7 +31,7 @@ class CategoryType(Enum):
 
 
 category_handlers = {
-    CategoryType.ATTACHMENT: [],
+    CategoryType.ATTACHMENT: [get_overlapping_cols, create_templates_attach],
     CategoryType.SCOPE: [get_many_to_many_from_line, find_entity_component_from, create_templates_scope],
     CategoryType.VAGUE: [process_semantic_close_attributes_line, process_hypernym_line, create_templates_vague],
     CategoryType.COL_UNANS: [],

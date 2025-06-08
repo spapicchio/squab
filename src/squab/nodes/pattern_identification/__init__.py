@@ -1,2 +1,3 @@
 from squab.nodes.pattern_identification.node_many_to_many import get_many_to_many_from_line
+from squab.nodes.pattern_identification.node_overlapping_cols import get_overlapping_cols
 from squab.nodes.pattern_identification.node_semantic_close_attributes import process_semantic_close_attributes_line

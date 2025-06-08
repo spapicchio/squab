@@ -29,12 +29,12 @@ def create_templates_scope(
         {
             "question": question_1,
             "query": query_1,
-            "test_category": "collective interpretation",
+            "test_category": "",
         },
         {
             "question": question_2,
             "query": query_2,
-            "test_category": "distributive interpretation",
+            "test_category": "",
         },
     ]
     return [question_sql_templates]

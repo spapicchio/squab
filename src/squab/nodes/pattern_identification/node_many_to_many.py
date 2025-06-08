@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 from sqlalchemy import create_engine
 
@@ -27,7 +29,7 @@ def get_many_to_many_from_line(
     lines = []
     for pattern in identified_patterns:
         line[GenerationSteps.PI.value] = pattern
-        lines.append(line)
+        lines.append(copy.deepcopy(line))
 
     if len(lines) == 0:
         line['has_failed'] = {

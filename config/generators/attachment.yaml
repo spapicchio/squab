@@ -1,0 +1,71 @@
+attachment:
+  tg_litellm_params:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_tokens: 100
+
+  tg_system: |-
+    You are a helpful assistant who writes a natural language (NL) question. 
+    You are provided with a definition of ambiguity, the SQL queries that answer the question following the ambiguity rules, and a database containing the answers. You may also receive metadata helping you in generating the question. Your task is to write the NL question following these guidelines:
+
+    - All unformatted table and column names must be replaced with plain words, preferably synonyms.
+    - Make the question as short as possible, but do not miss any part of the question like order-by (e.g., remove unnecessary words or paraphrase). Yet, you must check the relevant tables to ensure that the question and its interpretations express the same request as the queries and would yield the same answer. Example: You can modify "fitness training program" into "training program" and omit the unnecessary word “fitness” only if "training program"  cannot be confused with other columns in different tables.
+    - You must maintain ambiguity when writing the question and reading each interpretation.
+    - If the projected column name can be inferred, remove it from the final output
+    
+    # Ambiguity Definition
+    Attachment ambiguity refers to situations where two phrases are connected with relative pronouns, and it is ambiguous if the second phrase is attached to the end of the first phrase or the entire first phrase.
+    The ambiguity rise when there is a many-to-many relationship between two columns that have a 'Entity' - 'Component' semantic relation and distinct values in the Entity columns have same value in the Component column.
+    In the question, it is ambiguous whether the value in the component column has to be attached to only one of the value in the Entity columns or to both.
+    If possible, try to formulate the question without mentioning the column to project.
+    
+    # Output Format
+    Provide the answer in JSON format as follows
+    ```json
+    {
+        "question": "the generated question"
+    }
+    ```
+  tg_user: |-
+    ## queries
+    {{ target }}
+    
+    ## Metadata
+    {{ metadata }}
+    
+    ## Database
+    {{ database }}
+
+  user_template_params_from_line:
+    database: db_schema_table_examples
+    metadata: pattern_identification
+
+  tg_few_shots:
+    - target:
+        - 'SELECT EventSpaces.Name FROM EventSpaces WHERE (EventSpaces.Event_Space = "Banquet Hall" OR EventSpaces.Event_Space = "Conference Room") AND EventSpaces.Capacity = 200'
+        - 'SELECT EventSpaces.Name FROM EventSpaces WHERE EventSpaces.Event_Space = "Banquet Hall" OR EventSpaces.Event_Space = "Conference Room" AND EventSpaces.Capacity = 200'
+      metadata: '{"entity": "Event_Space", "component": "Capacity", "column_to_project": "Name", "entity_values": "[\"Banquet Hall\", \"Conference Room\"]", "component_values": "200"}'
+      database: "CREATE TABLE EventSpaces (\n    Name TEXT,\n    Event_Space TEXT,\n    Capacity INTEGER\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "List all banquet halls and conference rooms with a 200 person capacity."
+        } 
+        ```
+    - target:
+        - 'SELECT MusicPerformer.Name \r\nFROM MusicPerformer\r\nWHERE (MusicPerformer.MusicPerformerType = "Jazz Musician" OR MusicPerformer.MusicPerformerType = "Rock Guitarist") AND MusicPerformer.YearsInIndustry = 10'
+        - 'SELECT MusicPerformer.Name \r\nFROM MusicPerformer\r\nWHERE MusicPerformer.MusicPerformerType = "Jazz Musician" OR MusicPerformer.MusicPerformerType = "Rock Guitarist" AND MusicPerformer.YearsInIndustry = 10'
+      metadata: '{"entity": "MusicPerformerType", "component": "YearsInIndustry", "column_to_project": "Name", "entity_values": "[\"Jazz Musician\", \"Rock Guitarist\"]", "component_values": "10"}'
+      database: "CREATE TABLE MusicPerformer (\n    Name TEXT,\n    MusicPerformerType TEXT,\n    YearsInIndustry INTEGER\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "Display jazz musicians and rock guitarists who have been in the industry for 10 years."
+            "question": "Display jazz musicians and rock guitarists who have been in the industry for 10 years."
+            "question": "Display jazz musicians and rock guitarists who have been in the industry for 10 years."
+        } 
+        ```
+
+
+
+
