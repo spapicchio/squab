@@ -32,6 +32,8 @@ def test_generation_based_templates():
                 sql_interpretations = [
                     template["query"] for template in templates
                 ]
+                template_params = {key: line[val] for key, val in user_template_params_from_line.items()}
+                template_params['target'] = sql_interpretations
                 line = llm_node_update_line(
                     line=line,
                     system=tg_system,
@@ -39,7 +41,7 @@ def test_generation_based_templates():
                     few_shots=tg_few_shots,
                     col_to_update='question',
                     litellm_params=tg_litellm_params,
-                    template_params={key: line[val] for key, val in user_template_params_from_line.items()},
+                    template_params=template_params,
                     step=GenerationSteps.TG
                 ).result()
 

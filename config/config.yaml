@@ -4,7 +4,8 @@ defaults:
       #    - scope
       #    - attachment
       #      - col_unans
-      - calc_unans
+      #      - calc_unans
+      - out_of_scope
 db_path: 'fake_db_with_joins.sqlite'
 db_id: null
 only_these_tbl: null

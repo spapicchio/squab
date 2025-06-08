@@ -17,11 +17,16 @@ def create_udf_from(
         litellm_params_udf: dict,
         udf_system_template: str | None = None,
         udf_user_template: str | None = None,
+        udf_generation_examples: list[dict] = (),
         *args, **kwargs
 ) -> list[Line]:
     random.seed(kwargs.get('seed', 42))
-    messages = _create_messages(udf_system_template, udf_user_template, few_shots=[],
-                                tbl_schema=line['db_schema_table_examples'])
+    messages = _create_messages(
+        udf_system_template,
+        udf_user_template,
+        few_shots=udf_generation_examples,
+        tbl_schema=line['db_schema_table_examples']
+    )
     response, total_cost = llm_call(messages, litellm_params_udf).result()
     model_response = response["choices"][0]["message"]["content"]
     model_responses = extract_udf_python_from_model_response(model_response)
@@ -70,4 +75,6 @@ def extract_udf_python_from_model_response(model_response: str) -> list[tuple[di
     """
     json_blocks = utils_get_json_blocks_from_text(model_response)
     python_blocks = utils_get_python_blocks_from_text(model_response)
+    python_blocks = python_blocks \
+        if len(python_blocks) > 0 else ['def placeholder():\n\tprint("hello")'] * len(json_blocks)
     return list(zip(json_blocks, python_blocks))

@@ -59,13 +59,13 @@ col_unans:
     }
   tg_user: |-
     ## queries
-    {target}
+    {{ target }}
     
     ## Metadata
-    {metadata}
+    {{ metadata }}
     
     ## Database
-    {database}
+    {{ database }}
 
   user_template_params_from_line:
     database: db_schema_table_examples

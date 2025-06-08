@@ -84,7 +84,7 @@ def utils_get_python_blocks_from_text(text: str) -> list[str]:
         str: The last Python code block found in the text.
     """
     python_blocks = re.findall(r'```python\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
-    return python_blocks if python_blocks else ""
+    return python_blocks if python_blocks else []
 
 
 def is_openai_format(input_) -> bool:

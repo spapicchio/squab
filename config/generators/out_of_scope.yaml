@@ -1,4 +1,4 @@
-calc_unans:
+out_of_scope:
   litellm_params_udf:
     model: 'gpt-4o-mini'
     temperature: 0.0
@@ -10,44 +10,58 @@ calc_unans:
     max_completion_tokens: 100
 
   udf_system_template: |-
-    Create a User-Defined Function (UDF) executable in SQL using the given table schema. 
-    The output should be structured in JSON format. The UDF must not be as easy as the percentage. 
-    The UDF name must be different from existing columns to avoid any confusion with column names and should not contain any overlapping names or prefixes with the column names.
-    The semantic of the UDF must be different from the semantic of each column.
-
-    The table schema given as input contains each column's types and sample elements. The "udf_name" contains the call of the user-defined function with the column names separated by commas.
+    Create a User-Defined Function (UDF) that is executable but unanswerable using only the specified table schema. 
+    The UDF is unanswerable because it cannot be implemented in SQL but It requires a more complex logic not defined by the SQL as predicting the future values of a variable.
+    The output should be structured in JSON format with two keys: 'udf_name',  and 'udf_description'. 
+    The table schema given as input contains each column's types and sample elements.
+    The "udf_name" consists of the call of the user-defined function with the column names separated by commas.
+    Note that the UDF has to be based on the available columns from the schema, but the request should not be possible in SQL.
+    
     # Steps
-    1. **Analyze the Table Schema**: Understand the provided table schema.
-    2. **Design the UDF**: Create a hypothesis for the function using some of the columns available in the schema.
+    1. **Analyze the Table Schema**: Understand the provided table schema, including the available columns.
+    2. **Design the UDF**: Create a hypothesis for the function based on Python code and that cannot be executed within SQL syntax.
     3. **Describe the UDF**: Write a clear description of what the UDF intends to achieve.
     
     # Output Format
-    The output should be a JSON object with the following structure:
+    The output should be multiple JSON objects with the following structure. Divide each UDF with a comment `# New UDF`:
     - **udf_name**: A descriptive and relevant name for the User-Defined Function with the called columns. The names of the columns are enclosed within backticks to avoid SQL errors.
-    - **udf_description**: A detailed explanation of the function's intended operations.
+    - **udf_description**: A detailed explanation of the function's intended operations and why it is unanswerable.
     - **udf_output_type**: the output data type of the UDF. It can be "categorical" or "numerical".
     
-    The output must also contain the Python code that executes the logic of the UDF. The python code is enclosed in ```python ``` after the JSON.
-    Generate at most three UDFs based on the provided table schema. Each UDF should be unique and not overlap with existing column names.
     Example:
+    Provide the output in a structured JSON format:
     # New UDF
     ```json
     {
-      "udf_name": "calculate_interest_rate(`Age`, `Income`, `Credit_score`)",
-      "udf_description": "This UDF attempts to calculate a score based on the 'age', 'income', and 'credit_score' columns.",
+      "udf_name": "predict_interest_rate(`Age`, `Income`, `Credit_score`)",
+      "udf_description": "This UDF attempts to predict the interest rate based on Age, Income, and credit score."
       "udf_output_type": "numerical"
     }
     ```
-    ```python
-    def calculate_interest_rate(account_id, customer_id, balance, credit_score, loan_history):
-        interest_rate = (balance * 0.05) + (credit_score * 0.02) - (loan_history * 0.01)
-        return interest_rate
-    ```
+    # New UDF
+    ...
 
   udf_user_template: |-
     # Table Schema
     {{ tbl_schema }}
 
+  udf_generation_examples:
+    - tbl_schema: "CREATE TABLE Customer (\n   CustomerID INTEGER,\n   Age INTEGER,\n   Income REAL,\n   Credit_score INTEGER\n);"
+      assistant_answer: |-
+        ```json
+        {
+          "udf_name": "predict_interest_rate(`Age`, `Income`, `Credit_score`)",
+          "udf_description": "This UDF attempts to predict the interest rate based on Age, Income, and credit score.",
+          "udf_output_type": "numerical"
+        }
+        ```
+        ```json
+          {
+          "udf_name": "forecast_customer_lifetime_value(`Age`, `Income`, `Credit_score`)",
+          "udf_description": "This UDF forecasts the future lifetime value of a customer based on their age, income, and credit score. Such prediction requires advanced modeling and cannot be performed using SQL alone.",
+          "udf_output_type": "categorical"
+          }
+        ```
   tg_system: |-
     You are a helpful assistant who writes a natural language (NL) question from SQL query. You are provided with the SQL query that answers the question, a database where to run the query, and some metadata. Your task is to write the NL question following these guidelines:
 

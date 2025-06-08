@@ -30,7 +30,9 @@ def create_templates_udf_unans(
             test_query['question'] = test_query['question'].replace(col_to_use_for_generation,
                                                                     line[GenerationSteps.RM.value]['udf_name'])
             templates.append([test_query])
-
+    # in case there is no python code, no need to pass it to the LLM for the generation
+    if 'placeholder' in line[GenerationSteps.RM.value]['udf_python_code']:
+        line[GenerationSteps.RM.value].pop('udf_python_code')
     return templates
 
 
@@ -47,8 +49,8 @@ def _execute_udf_query(query: str, udf_python_code: str, db_path: str, udf_name:
             cursor = conn.execute(query)
             cursor.fetchall()
     except sqlite3.OperationalError as e:
-        if 'user-defined function' in str(e).lower():
-            # If the error is due to the UDF pytcho code we consider it a success because the query run.
+        if 'user-defined function' in str(e).lower() or 'no such function' in str(e).lower():
+            # If the error is due to the UDF python code we consider it a success because the query run.
             return True
         return False
     return True

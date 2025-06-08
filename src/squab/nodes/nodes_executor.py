@@ -40,7 +40,7 @@ category_handlers = {
     CategoryType.VAGUE: [process_semantic_close_attributes_line, process_hypernym_line, create_templates_vague],
     CategoryType.COL_UNANS: [create_new_attributes_from, create_templates_col_unans],
     CategoryType.CALC_UNANS: [create_udf_from, create_templates_udf_unans],
-    CategoryType.OUT_OF_SCOPE: [],
+    CategoryType.OUT_OF_SCOPE: [create_udf_from, create_templates_udf_unans],
 }
 
 
