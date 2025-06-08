@@ -1,3 +1,4 @@
+from squab.nodes.relational_metadata.node_create_udf import create_udf_from
 from squab.nodes.relational_metadata.node_entity_component import find_entity_component_from
 from squab.nodes.relational_metadata.node_hypernym import process_hypernym_line
 from squab.nodes.relational_metadata.node_new_attributes import create_new_attributes_from

@@ -1,0 +1,91 @@
+calc_unans:
+  litellm_params_udf:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_completion_tokens: 1000
+
+  tg_litellm_params:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_completion_tokens: 100
+
+  udf_system_template: |-
+    Create a User-Defined Function (UDF) executable in SQL using the given table schema. 
+    The output should be structured in JSON format. The UDF must not be as easy as the percentage. 
+    The UDF name must be different from existing columns to avoid any confusion with column names and should not contain any overlapping names or prefixes with the column names.
+    The semantic of the UDF must be different from the semantic of each column.
+
+    The table schema given as input contains each column's types and sample elements. The "udf_name" contains the call of the user-defined function with the column names separated by commas.
+    # Steps
+    1. **Analyze the Table Schema**: Understand the provided table schema.
+    2. **Design the UDF**: Create a hypothesis for the function using some of the columns available in the schema.
+    3. **Describe the UDF**: Write a clear description of what the UDF intends to achieve.
+    
+    # Output Format
+    The output should be a JSON object with the following structure:
+    - **udf_name**: A descriptive and relevant name for the User-Defined Function with the called columns. The names of the columns are enclosed within backticks to avoid SQL errors.
+    - **udf_description**: A detailed explanation of the function's intended operations.
+    - **udf_output_type**: the output data type of the UDF. It can be "categorical" or "numerical".
+    
+    The output must also contain the Python code that executes the logic of the UDF. The python code is enclosed in ```python ``` after the JSON.
+    Generate at most three UDFs based on the provided table schema. Each UDF should be unique and not overlap with existing column names.
+    Example:
+    # New UDF
+    ```json
+    {
+      "udf_name": "calculate_interest_rate(`Age`, `Income`, `Credit_score`)",
+      "udf_description": "This UDF attempts to calculate a score based on the 'age', 'income', and 'credit_score' columns.",
+      "udf_output_type": "numerical"
+    }
+    ```
+    ```python
+    def calculate_interest_rate(account_id, customer_id, balance, credit_score, loan_history):
+        interest_rate = (balance * 0.05) + (credit_score * 0.02) - (loan_history * 0.01)
+        return interest_rate
+    ```
+
+  udf_user_template: |-
+    # Table Schema
+    {{ tbl_schema }}
+
+  tg_system: |-
+    You are a helpful assistant who writes a natural language (NL) question from SQL query. You are provided with the SQL query that answers the question, a database where to run the query, and some metadata. Your task is to write the NL question following these guidelines:
+
+    - All unformatted table and column names must be replaced with plain words, preferably synonyms.
+    - Make the question as short as possible (e.g., remove unnecessary words or paraphrase). Still, you must check the relevant tables to ensure that the question is the same request as the query and will yield the same answer. Example: You can modify "fitness training program" into "training program" and omit the unnecessary word “fitness” only if "training program"  cannot be confused with other columns in different tables.
+    - If the projected column name can be inferred, remove it from the final output
+    
+    # Output Format
+    Provide the answer in JSON format as follows
+    ```json
+    {
+           "question": "the generated question"
+    }
+  tg_user: |-
+    ## queries
+    {target}
+    
+    ## Metadata
+    {metadata}
+    
+    ## Database
+    {database}
+
+  user_template_params_from_line:
+    database: db_schema_table_examples
+    metadata: relational_metadata
+
+  tg_few_shots:
+    - target: "SELECT calculate_interest_rate(`Age`, `Income`, `Credit_score`) AS InterestRate FROM Customer;"
+      metadata: "The UDF 'calculate_interest_rate' computes an interest rate based on age, income, and credit score."
+      database: "CREATE TABLE Customer (\n   CustomerID INTEGER,\n   Age INTEGER,\n   Income REAL,\n   Credit_score INTEGER\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "What is the calculated interest rate for each customer based on their age, income, and credit score?"
+        }
+        ```
+
+
+
+

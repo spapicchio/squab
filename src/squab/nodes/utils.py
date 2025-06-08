@@ -58,6 +58,11 @@ def utils_get_last_json_from_text(text: str) -> dict:
         dict: The last JSON object found in the text.
     """
     # Find all JSON-like patterns in the text
+    json_objects = utils_get_json_blocks_from_text(text)
+    return json_objects[-1] if json_objects else {}
+
+
+def utils_get_json_blocks_from_text(text: str) -> list[dict]:
     json_blocks = re.findall(r'```json\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
     json_objects = []
     for block in json_blocks:
@@ -65,12 +70,21 @@ def utils_get_last_json_from_text(text: str) -> dict:
             json_objects.append(json.loads(block))
         except json.JSONDecodeError:
             continue
+    return json_objects if json_objects else []
 
-    if not json_objects:
-        return {}
 
-    # Parse the last JSON object
-    return json_objects[-1]
+def utils_get_python_blocks_from_text(text: str) -> list[str]:
+    """
+    Extracts the last Python code block from a given text string.
+
+    Args:
+        text (str): The input text containing Python code blocks.
+
+    Returns:
+        str: The last Python code block found in the text.
+    """
+    python_blocks = re.findall(r'```python\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
+    return python_blocks if python_blocks else ""
 
 
 def is_openai_format(input_) -> bool:
@@ -161,6 +175,7 @@ def utils_run_qatch(
     )
     return list_tests
 
+
 def utils_levenshtein_name_in(list_values: list, name: str) -> str:
     """
     Get the name with the most overlapping characters from a list of names.
@@ -182,3 +197,13 @@ def utils_levenshtein_name_in(list_values: list, name: str) -> str:
             most_overlapping_name = val
 
     return most_overlapping_name
+
+
+def utils_execute_python_code(python_code) -> dict:
+    local_namespace = {}
+    try:
+        # Dynamically execute the provided UDF code in a local namespace
+        exec(python_code, globals(), local_namespace)
+    except Exception:
+        pass
+    return local_namespace

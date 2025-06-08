@@ -13,13 +13,15 @@ from squab.nodes.pattern_identification import (
 from squab.nodes.relational_metadata import (
     process_hypernym_line,
     find_entity_component_from,
-    create_new_attributes_from
+    create_new_attributes_from,
+    create_udf_from
 )
 from squab.nodes.test_generation import (
     create_templates_vague,
     create_templates_scope,
     create_templates_attach,
-    create_templates_col_unans
+    create_templates_col_unans,
+    create_templates_udf_unans
 )
 
 
@@ -37,7 +39,7 @@ category_handlers = {
     CategoryType.SCOPE: [get_many_to_many_from_line, find_entity_component_from, create_templates_scope],
     CategoryType.VAGUE: [process_semantic_close_attributes_line, process_hypernym_line, create_templates_vague],
     CategoryType.COL_UNANS: [create_new_attributes_from, create_templates_col_unans],
-    CategoryType.CALC_UNANS: [],
+    CategoryType.CALC_UNANS: [create_udf_from, create_templates_udf_unans],
     CategoryType.OUT_OF_SCOPE: [],
 }
 
