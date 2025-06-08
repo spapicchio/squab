@@ -53,6 +53,16 @@ def test_generation_based_templates():
                 line['test_sub_category'] = templates[0]['test_category']
                 line['templates'] = templates
                 processed_lines.append(line)
+
+            if len(processed_lines) == 0:
+                kwargs['logger'].warning(
+                    f"No templates generated for line"
+                )
+                line['has_failed'] = {
+                    GenerationSteps.TG.value: "No templates generated."
+                }
+                processed_lines.append(line)
+
             return processed_lines
 
         return wrapper

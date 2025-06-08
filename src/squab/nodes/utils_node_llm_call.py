@@ -1,3 +1,5 @@
+import copy
+
 import litellm
 from jinja2 import Template
 from langgraph.func import task
@@ -40,11 +42,13 @@ def llm_node_update_line(line: Line,
                          litellm_params: dict,
                          template_params: dict,
                          step: GenerationSteps) -> Line:
+    line = copy.deepcopy(line)
     messages = _create_messages(system, user, few_shots, **template_params)
     response, total_cost = llm_call(messages, litellm_params).result()
     model_response = response["choices"][0]["message"]["content"]
     generated_response = utils_get_last_json_from_text(model_response)
     if not generated_response:
+        line[col_to_update] = ''
         line['has_failed'] = {
             step.value: f"Model Response: {model_response}"
         }

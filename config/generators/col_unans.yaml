@@ -1,0 +1,95 @@
+col_unans:
+  litellm_params_new_attributes:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_completion_tokens: 1000
+
+  tg_litellm_params:
+    model: 'gpt-4o-mini'
+    temperature: 0.0
+    max_completion_tokens: 100
+
+  new_attributes_system_template: |-
+    Generate suggestions for new columns to add to a database table, including the type of column (categorical or numerical) and sample data for each column based on the given table name, database name, and existing column names.
+    
+    # Steps
+    1. **Analyze Provided Information**: Review the table name, database name, and existing column names to determine the context and purpose of the table.
+    2. **Infer Potential Data Gaps**: Consider common or useful additional columns that could complement or enhance the data in the table.
+    3. **Suggest New Columns**:
+       - Determine if each suggested column should be categorical or numerical based on the inferred data gap.
+       - Provide a rationale for why each new column would be a beneficial addition.
+    4. **Generate Sample Data**: For each suggested column, provide sample data that fits the column type.
+    
+    # Notes
+    - Consider the context provided by the existing columns to ensure the suggestions add value.
+    - For databases associated with specific industries (e.g., finance, healthcare, retail), leverage common industry practices for enhancing data tables.
+    - Make sure sample data is representative and logical based on the column type specified.
+    
+    # Output Format
+    Provide the output in a structured JSON format:
+    ```json
+    {
+      "suggested_columns": [
+        {
+          "column_name": "[suggested_column_name]",
+          "column_type": "[categorical/numerical]",
+          "description": "the description of the column",
+          "sample_data": ["[sample_value1]", "[sample_value2]", ...]
+        },
+        ...
+      ]
+    }
+    ```
+  new_attributes_user_template: |-
+    # Table Schema
+    {{ tbl_schema }}
+
+  tg_system: |-
+    You are a helpful assistant who writes a natural language (NL) question from SQL query. You are provided with the SQL query that answers the question, a database where to run the query, and some metadata. Your task is to write the NL question following these guidelines:
+
+    - All unformatted table and column names must be replaced with plain words, preferably synonyms.
+    - Make the question as short as possible (e.g., remove unnecessary words or paraphrase). Still, you must check the relevant tables to ensure that the question is the same request as the query and will yield the same answer. Example: You can modify "fitness training program" into "training program" and omit the unnecessary word “fitness” only if "training program"  cannot be confused with other columns in different tables.
+    - If the projected column name can be inferred, remove it from the final output
+    
+    # Output Format
+    Provide the answer in JSON format as follows
+    ```json
+    {
+           "question": "the generated question"
+    }
+  tg_user: |-
+    ## queries
+    {target}
+    
+    ## Metadata
+    {metadata}
+    
+    ## Database
+    {database}
+
+  user_template_params_from_line:
+    database: db_schema_table_examples
+    metadata: relational_metadata
+
+  tg_few_shots:
+    - target: "SELECT DISTINCT StoreName FROM Store;"
+      metadata: "StoreName is the name of the store."
+      database: "CREATE TABLE Store (\n   StoreID INTEGER,\n    StoreName TEXT,\n    Location TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "What are the names of the stores?"
+        }
+        ```
+    - target: "SELECT CarName, COUNT(*) as CarCount FROM Car GROUP BY CarName HAVING COUNT(*) > 1;"
+      metadata: "CarName is the name of the car. The query groups cars by name and returns only those names that appear more than once."
+      database: "CREATE TABLE Car (\n   CarID INTEGER,\n    CarName TEXT,\n    EngineType TEXT\n);"
+      assistant_answer: |-
+        ```json
+        {
+            "question": "Which car names appear more than once, and how many times does each appear?"
+        }
+        ```
+
+
+

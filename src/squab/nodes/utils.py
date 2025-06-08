@@ -58,17 +58,19 @@ def utils_get_last_json_from_text(text: str) -> dict:
         dict: The last JSON object found in the text.
     """
     # Find all JSON-like patterns in the text
-    json_objects = re.findall(r'\{.*?\}', text, re.DOTALL)
+    json_blocks = re.findall(r'```json\s*(.*?)\s*```', text, re.DOTALL | re.IGNORECASE)
+    json_objects = []
+    for block in json_blocks:
+        try:
+            json_objects.append(json.loads(block))
+        except json.JSONDecodeError:
+            continue
 
     if not json_objects:
         return {}
 
     # Parse the last JSON object
-    last_json_str = json_objects[-1]
-    try:
-        return json.loads(last_json_str)
-    except json.JSONDecodeError:
-        return {}
+    return json_objects[-1]
 
 
 def is_openai_format(input_) -> bool:

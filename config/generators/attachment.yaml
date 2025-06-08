@@ -2,7 +2,7 @@ attachment:
   tg_litellm_params:
     model: 'gpt-4o-mini'
     temperature: 0.0
-    max_tokens: 100
+    max_completion_tokens: 100
 
   tg_system: |-
     You are a helpful assistant who writes a natural language (NL) question. 

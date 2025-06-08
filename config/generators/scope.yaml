@@ -2,11 +2,11 @@ scope:
   litellm_params_entity_component:
     model: 'gpt-4o-mini'
     temperature: 0.0
-    max_tokens: 100
+    max_completion_tokens: 100
   tg_litellm_params:
     model: 'gpt-4o-mini'
     temperature: 0.0
-    max_tokens: 100
+    max_completion_tokens: 100
 
   entity_component_system_template: |-
     You are a helpful AI assistant. Identify the semantic relationship between two provided names and determine if one is an Entity and the other is a Component. Note that a component can also be an element present in the entities.

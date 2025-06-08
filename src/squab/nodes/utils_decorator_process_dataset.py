@@ -33,6 +33,9 @@ def dataset_processor():
             for line in dataset:
                 # Skip lines that have failed
                 if 'has_failed' in line:
+                    kwargs['logger'].warning(
+                        f"Skipping line due to failure: {line['has_failed']}"
+                    )
                     processed_dataset.append(line)
                     continue
 

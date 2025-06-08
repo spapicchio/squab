@@ -5,7 +5,7 @@ vague:
   litellm_params_hypernym:
     model: 'gpt-4o-mini'
     temperature: 0.0
-    max_tokens: 100
+    max_completion_tokens: 100
 
   hypernym_system_template: >-
     Given a specific table schema and a designated set of columns, your task is to generate a suitable and appropriate label for that particular set.

@@ -2,7 +2,8 @@ defaults:
   - generators:
 #    - vague
 #    - scope
-     - attachment
+#    - attachment
+     - col_unans
 db_path: 'fake_db_with_joins.sqlite'
 db_id: null
 only_these_tbl: null
