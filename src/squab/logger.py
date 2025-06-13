@@ -1,8 +1,13 @@
-import logging
-import os
+import sys
+from typing import Literal
+
+from loguru import logger as loguru_logger
+
+LogLevel = Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
 
 
-def get_logger(name: str, level=logging.INFO, log_file: str = None):
+# type_available_loggers
+def get_logger(name: str, level: LogLevel = "INFO", log_file: str = None):
     """
     Create and return a customized logger with error message coloring.
     
@@ -14,31 +19,22 @@ def get_logger(name: str, level=logging.INFO, log_file: str = None):
     Returns:
         logging.Logger: Configured logger instance.
     """
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    if not logger.handlers:
-        # Console handler with color support for ERROR
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(level)
-
-        # Use the custom formatter that highlights ERROR messages
-        plain_formatter = logging.Formatter('[%(asctime)s][%(name)s][%(levelname)s] %(message)s')
-        console_handler.setFormatter(plain_formatter)
-        logger.addHandler(console_handler)
-        # File handler (logs to file in plain text, without colors)
-        if log_file:
-            os.makedirs(os.path.dirname(log_file), exist_ok=True)
-            file_handler = logging.FileHandler(log_file)
-            file_handler.setLevel(level)
-            file_handler.setFormatter(plain_formatter)
-            logger.addHandler(file_handler)
-
-    return logger
+    level = level.upper()
+    loguru_logger.remove()
+    # https://loguru.readthedocs.io/en/stable/api/logger.html#record
+    fmt = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | " \
+          "<level>{level: <8}</level> | " \
+          "{extra[passed_name]} | " \
+          "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+    # fmt = "[<green><b>{time:YYYY-MM-DD hh:mm:ss}</b></green>][<cyan><b>{file}:{name}:{line}</b></cyan> - <cyan>{name}:{function}</cyan>][ {extra[passed_name]} ] HELLO {message}\n"
+    sink = sys.stdout if log_file is None else log_file
+    loguru_logger.add(sink, format=fmt, level=level,
+                      filter=lambda record: 'passed_name' in record["extra"])
+    return loguru_logger.bind(passed_name=name)
 
 
 if __name__ == "__main__":
-    logger = get_logger("test_logger", level=logging.DEBUG, log_file="./test_logger.log")
-    logger.error("This is a debug message.")
-    logger.info("This is an info message.")
-    logger.warning("This is a warning message.")
+    logger_A = get_logger("A", level="INFO", log_file=None)
+    logger_B = get_logger("B", level="INFO", log_file=None)
+    logger_A.warning("This is a info message.")
+    logger_B.info("This is an info message.")

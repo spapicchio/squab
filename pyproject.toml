@@ -15,6 +15,7 @@ dependencies = [
     "langchain-openai>=0.3.2",
     "langchain-together>=0.3.0",
     "litellm>=1.72.1",
+    "loguru>=0.7.3",
     "pytest[dev]>=8.3.4",
     "python-dotenv>=1.0.1",
     "qatch>=1.0.28",
