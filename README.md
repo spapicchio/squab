@@ -1,8 +1,8 @@
 # SQUAB: **SQ**l-**U**nanswerable-and-**A**mbiguous-**B**enchmarking
 
 This repository is the official implementation
-of [Evaluating LLM’s robustness to Ambiguous and Unanswerable Questions
-in Semantic Parsing]()
+of [SQUAB: Evaluating LLM robustness to Ambiguous and Unanswerable Questions in Semantic Parsing](https://underline.io/lecture/130658-squab-evaluating-llm-robustness-to-ambiguous-and-unanswerable-questions-in-semantic-parsing)
+to appear in EMNLP 2025 main conf
 
 # 🔥 Updates
 
